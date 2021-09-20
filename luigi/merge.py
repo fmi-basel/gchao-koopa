@@ -25,7 +25,6 @@ class Merge(luigi.Task):
     def requires(self):
         requiredInputs = []
         for i in self.file_list:
-            requiredInputs.append(Preprocess(FileID=i))
             requiredInputs.append(SegmentCells(FileID=i))
             for c in globalConfig().ChannelSpots:
                 requiredInputs.append(Detect(FileID=i, SpotChannel=c))
