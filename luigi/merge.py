@@ -1,5 +1,8 @@
 from pathlib import Path
+import configparser
+import datetime
 import os
+import subprocess
 
 from tqdm import tqdm
 import pandas as pd
@@ -13,8 +16,47 @@ from preprocess import Preprocess
 from segment_cells import SegmentCells
 
 
+class Version(luigi.Task):
+    """Version analysis workflow to ensure reproducible results."""
+
+    def output(self):
+        return luigi.LocalTarget(os.path.join(CustomConfig().analysis_dir, "luigi.cfg"))
+
+    @staticmethod
+    def get_git_hash():
+        return (
+            subprocess.check_output(["git", "rev-parse", "HEAD"])
+            .decode("ascii")
+            .strip()
+        )
+
+    @staticmethod
+    def get_timestamp():
+        return str(datetime.datetime.now().timestamp())
+
+    def run(self):
+        config = configparser.ConfigParser()
+        config.read("./luigi.cfg")
+        config["Versioning"] = {
+            "timestamp": self.get_timestamp(),
+            "githash": self.get_git_hash(),
+        }
+        with open(self.output().path, "w") as configfile:
+            config.write(configfile)
+
+
 class Merge(luigi.Task):
     """Task to merge workflow tasks into a summary and initiate paralellization."""
+
+    force = luigi.BoolParameter(significant=False, default=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.force is True:
+            outputs = luigi.task.flatten(self.output())
+            for out in outputs:
+                if out.exists():
+                    os.remove(self.output().path)
 
     @property
     def file_list(self):
@@ -29,6 +71,7 @@ class Merge(luigi.Task):
             requiredInputs.append(SegmentCells(FileID=i))
             for c in CustomConfig().channel_spots:
                 requiredInputs.append(Detect(FileID=i, SpotChannel=c))
+        requiredInputs.append(Version())
         return requiredInputs
 
     def output(self):
