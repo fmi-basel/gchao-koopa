@@ -6,7 +6,7 @@ import luigi
 import numpy as np
 import skimage.io
 
-from config import globalConfig
+from config import CustomConfig
 
 
 def create_directories(basedir: str, spot_indexes: list):
@@ -76,7 +76,7 @@ class Preprocess(luigi.Task):
 
     @property
     def input_name(self):
-        input_name = os.path.join(globalConfig().ImageDir, f"{self.FileID}.nd")
+        input_name = os.path.join(CustomConfig().image_dir, f"{self.FileID}.nd")
         if not os.path.exists(input_name):
             raise ValueError(f"File {input_name} does not exist.")
         return input_name
@@ -84,7 +84,7 @@ class Preprocess(luigi.Task):
     @property
     def output_name(self):
         output_name = os.path.join(
-            globalConfig().AnalysisDir, "preprocessed", f"{self.FileID}.tif"
+            CustomConfig().analysis_dir, "preprocessed", f"{self.FileID}.tif"
         )
         return output_name
 
@@ -96,9 +96,10 @@ class Preprocess(luigi.Task):
 
     def run(self):
         create_directories(
-            basedir=globalConfig().AnalysisDir, spot_indexes=globalConfig().ChannelSpots
+            basedir=CustomConfig().analysis_dir,
+            spot_indexes=CustomConfig().channel_spots,
         )
         image = open_nd_file(self.input_name)
-        image = np.array([z_project(c, globalConfig().ZProjection) for c in image])
+        image = np.array([z_project(c, CustomConfig().z_projection) for c in image])
         skimage.io.imsave(self.output_name, image, check_contrast=False)
 

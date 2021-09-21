@@ -7,7 +7,7 @@ import luigi
 import numpy as np
 import skimage.io
 
-from config import globalConfig
+from config import CustomConfig
 from detect import Detect
 from preprocess import Preprocess
 from segment_cells import SegmentCells
@@ -18,7 +18,7 @@ class Merge(luigi.Task):
 
     @property
     def file_list(self):
-        files_nd = sorted(Path(globalConfig().ImageDir).rglob("*.nd"))
+        files_nd = sorted(Path(CustomConfig().image_dir).rglob("*.nd"))
         files = [os.path.basename(f).replace(".nd", "") for f in files_nd]
         return files
 
@@ -27,20 +27,20 @@ class Merge(luigi.Task):
         for i in self.file_list:
             requiredInputs.append(Preprocess(FileID=i))
             requiredInputs.append(SegmentCells(FileID=i))
-            for c in globalConfig().ChannelSpots:
+            for c in CustomConfig().channel_spots:
                 requiredInputs.append(Detect(FileID=i, SpotChannel=c))
         return requiredInputs
 
     def output(self):
         return luigi.LocalTarget(
-            os.path.join(globalConfig().AnalysisDir, "summary.csv")
+            os.path.join(CustomConfig().analysis_dir, "summary.csv")
         )
 
     def read_files(self, file_id):
         """Read all analysis files associated with one file id."""
         # Segmentation
         fname_segmap = os.path.join(
-            globalConfig().AnalysisDir, "segmentation_cells", f"{file_id}.tif"
+            CustomConfig().analysis_dir, "segmentation_cells", f"{file_id}.tif"
         )
         segmap = skimage.io.imread(fname_segmap)
         segmap_nucleus = segmap[0]
@@ -48,9 +48,9 @@ class Merge(luigi.Task):
 
         # Spots
         dfs = []
-        for c in globalConfig().ChannelSpots:
+        for c in CustomConfig().channel_spots:
             fname_spots = os.path.join(
-                globalConfig().AnalysisDir, f"detection_c{c}", f"{file_id}.parq"
+                CustomConfig().analysis_dir, f"detection_c{c}", f"{file_id}.parq"
             )
             dfs.append(pd.read_parquet(fname_spots))
         df = pd.concat(dfs)

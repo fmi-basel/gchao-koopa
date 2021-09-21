@@ -1,18 +1,18 @@
 import luigi
 
 
-class globalConfig(luigi.Config):
-    ImageDir = luigi.Parameter(description="Directory with raw nd/stk files.")
-    AnalysisDir = luigi.Parameter(description="Directory to save analysis results.")
-    ModelSpots = luigi.Parameter(description="Path to deepblink spot model.")
-    ZProjection = luigi.Parameter(description="Type of z-projection (max / mean).")
-    ChannelSpots = luigi.ListParameter(description="Indexes for spots channel.")
-    ChannelBackground = luigi.IntParameter(
+class CustomConfig(luigi.Config):
+    image_dir = luigi.Parameter(description="Directory with raw nd/stk files.")
+    analysis_dir = luigi.Parameter(description="Directory to save analysis results.")
+    model_spots = luigi.Parameter(description="Path to deepblink spot model.")
+    z_projection = luigi.Parameter(description="Type of z-projection (max / mean).")
+    channel_spots = luigi.ListParameter(description="Indexes for spots channel.")
+    channel_background = luigi.IntParameter(
         description="Index for background segmentation channel."
     )
-    ChannelNucleus = luigi.IntParameter(description="Index for nucleus channel.")
-    RefinementRadius = luigi.IntParameter(
+    channel_nucleus = luigi.IntParameter(description="Index for nucleus channel.")
+    refinement_radius = luigi.IntParameter(
         description="Radius for spot intensity / size refinement."
     )
-    NucleusDiameter = luigi.IntParameter(description="Nuclear diameter for cellpose.")
-    NucleusMinsize = luigi.IntParameter(description="Nuclear diameter for cellpose.")
+    nucleus_diameter = luigi.IntParameter(description="Nuclear diameter for cellpose.")
+    nucleus_minsize = luigi.IntParameter(description="Nuclear diameter for cellpose.")

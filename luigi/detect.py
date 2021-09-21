@@ -9,7 +9,7 @@ import skimage.filters
 import tensorflow as tf
 import trackpy as tp
 
-from config import globalConfig
+from config import CustomConfig
 from preprocess import Preprocess
 
 tp.quiet()
@@ -24,13 +24,13 @@ class Detect(luigi.Task):
     @property
     def input_file(self):
         return os.path.join(
-            globalConfig().AnalysisDir, "preprocessed", f"{self.FileID}.tif"
+            CustomConfig().analysis_dir, "preprocessed", f"{self.FileID}.tif"
         )
 
     @property
     def output_file(self):
         return os.path.join(
-            globalConfig().AnalysisDir,
+            CustomConfig().analysis_dir,
             f"detection_c{self.SpotChannel}",
             f"{self.FileID}.parq",
         )
@@ -82,7 +82,7 @@ class Detect(luigi.Task):
     def run(self):
         self.configure_tensorflow()
         image = skimage.io.imread(self.input_file)
-        image_spots = image[globalConfig().ChannelSpots]
-        model = pink.io.load_model(globalConfig().ModelSpots)
-        df_spots = self.detect(image_spots, model, globalConfig().RefinementRadius)
+        image_spots = image[CustomConfig().channel_spots]
+        model = pink.io.load_model(CustomConfig().model_spots)
+        df_spots = self.detect(image_spots, model, CustomConfig().refinement_radius)
         df_spots.to_parquet(self.output_file)

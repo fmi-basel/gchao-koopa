@@ -10,7 +10,7 @@ import skimage.filters
 import skimage.segmentation
 import torch
 
-from config import globalConfig
+from config import CustomConfig
 from preprocess import Preprocess
 
 
@@ -22,13 +22,13 @@ class SegmentCells(luigi.Task):
     @property
     def input_file(self):
         return os.path.join(
-            globalConfig().AnalysisDir, "preprocessed", f"{self.FileID}.tif"
+            CustomConfig().analysis_dir, "preprocessed", f"{self.FileID}.tif"
         )
 
     @property
     def output_file(self):
         return os.path.join(
-            globalConfig().AnalysisDir, "segmentation_cells", f"{self.FileID}.tif"
+            CustomConfig().analysis_dir, "segmentation_cells", f"{self.FileID}.tif"
         )
 
     def segment_nucleus(self, diameter_nucleus: int, minimum_size: int,) -> np.ndarray:
@@ -69,13 +69,13 @@ class SegmentCells(luigi.Task):
     def run(self):
         # Load and normalize
         image = skimage.io.imread(self.input_file)
-        self.image_nucleus = image[globalConfig().ChannelNucleus]
-        self.image_cytoplasm = image[globalConfig().ChannelBackground]
+        self.image_nucleus = image[CustomConfig().channel_nucleus]
+        self.image_cytoplasm = image[CustomConfig().channel_background]
 
         # Segment image
         mask_nucl = self.segment_nucleus(
-            diameter_nucleus=globalConfig().NucleusDiameter,
-            minimum_size=globalConfig().NucleusMinsize,
+            diameter_nucleus=CustomConfig().nucleus_diameter,
+            minimum_size=CustomConfig().nucleus_minsize,
         )
         mask_cell = self.segment_cell(mask_nucl)
         segmap = np.stack([mask_nucl, mask_cell], axis=0).astype(np.uint16)
