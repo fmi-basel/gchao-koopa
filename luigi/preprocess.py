@@ -11,11 +11,7 @@ from config import CustomConfig
 
 def create_directories(basedir: str, spot_indexes: list):
     """Create all analysis directories for a given path."""
-    directories = [
-        "preprocessed",
-        "segmentation_cells",
-        "results",
-    ]
+    directories = ["preprocessed", "segmentation_cells"]
     directories.extend([f"detection_c{i}" for i in spot_indexes])
     for folder in directories:
         path = os.path.join(basedir, folder)
