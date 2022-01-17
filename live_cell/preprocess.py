@@ -20,8 +20,8 @@ def create_directories(basedir: str) -> None:
         "segmentation",
         "detection_ms2",
         "detection_suntag",
-        "tracks_ms2",
-        "tracks_suntag",
+        "track_ms2",
+        "track_suntag",
         "colocalization",
     ]
     for folder in directories:
