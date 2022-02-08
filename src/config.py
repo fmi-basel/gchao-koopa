@@ -62,6 +62,7 @@ class SpotsColocalization(luigi.Config):
 
 class SegmentationPrimary(luigi.Config):
     channel = luigi.IntParameter(description="Channel index (0-indexed).")
+    model = luigi.Parameter(description="Cellpose model for segmenation (cyto / nuclei).")
     diameter = luigi.IntParameter(description="Diameter for cellpose.")
     resample = luigi.BoolParameter(
         description="If segmap should be resampled (slower, more accurate).",
