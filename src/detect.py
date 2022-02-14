@@ -6,8 +6,8 @@ import deepblink as pink
 import luigi
 import numpy as np
 import pandas as pd
-import skimage
 import tensorflow as tf
+import tifffile
 import trackpy as tp
 
 from config import General
@@ -38,10 +38,11 @@ class Detect(luigi.Task):
 
     def run(self):
         self.load_deepblink_model()
-        image = skimage.io.imread(self.requires().output().path)
+        image = tifffile.imread(self.requires().output().path)
         image_spots = image[SpotsDetection().channels[self.ChannelIndex]]
 
         df_spots = self.detect(image_spots)
+        df_spots.insert(loc=0, column="FileID", value=self.FileID)
         df_spots.to_parquet(self.output().path)
 
     def detect_frame(self, image: np.ndarray) -> pd.DataFrame:

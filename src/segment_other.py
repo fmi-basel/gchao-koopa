@@ -4,11 +4,11 @@ from tqdm import tqdm
 import luigi
 import numpy as np
 import segmentation_models as sm
-import skimage
 import skimage.exposure
 import skimage.filters
 import skimage.morphology
 import tensorflow as tf
+import tifffile
 
 from config import General
 from config import SegmentationOther
@@ -34,7 +34,7 @@ class SegmentOther(luigi.Task):
         )
 
     def run(self):
-        image = skimage.io.imread(self.requires().output().path)
+        image = tifffile.imread(self.requires().output().path)
         image_other = image[SegmentationOther().channels[self.ChannelIndex]]
 
         segmap = self.segment(image_other)

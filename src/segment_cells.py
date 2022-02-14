@@ -1,12 +1,12 @@
 import logging
 import os
-from turtle import st
 
 from cellpose import models
 import luigi
 import numpy as np
-import skimage.io
 import skimage.filters
+import skimage.io
+import tifffile
 import torch
 
 from config import General
@@ -32,7 +32,7 @@ class SegmentPrimary(luigi.Task):
         )
 
     def run(self):
-        image = skimage.io.imread(self.requires().output().path)
+        image = tifffile.imread(self.requires().output().path)
         image_primary = image[SegmentationPrimary().channel]
         segmap = self.segment(image_primary)
         skimage.io.imsave(self.output().path, segmap, check_contrast=False)
@@ -52,6 +52,7 @@ class SegmentPrimary(luigi.Task):
 
         if General().do_3D:
             image = np.array([(i - np.mean(i)) / np.std(i) for i in image])
+            self.logger.info("Normalized image along z-dimension.")
 
         segmap, *_ = cellpose_model.eval(
             [image],
@@ -82,10 +83,10 @@ class SegmentSecondary(luigi.Task):
         )
 
     def run(self):
-        image = skimage.io.imread(self.requires()[0].output().path)
+        image = tifffile.imread(self.requires()[0].output().path)
         image_secondary = image[SegmentationSecondary().channel]
         self.logger.debug("Loaded secondary image.")
-        segmap_primary = skimage.io.imread(self.requires()[1].output().path)
+        segmap_primary = tifffile.imread(self.requires()[1].output().path)
         self.logger.debug("Loaded primary segmap.")
 
         segmap = self.segment_secondary(segmap_primary, image_secondary)
