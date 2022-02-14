@@ -4,6 +4,7 @@ import logging
 import os
 import re
 
+import czifile
 import luigi
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +17,18 @@ from config import PreprocessingNormalization
 from setup import SetupPipeline
 
 
-def parse_nd(filename: str) -> dict:
+def open_czi_file(fname_czi: os.PathLike) -> np.ndarray:
+    """Read .czi files as numpy array."""
+    if not os.path.exists(fname_czi):
+        raise ValueError(f"File {fname_czi} does not exist.")
+
+    image = czifile.imread(fname_czi).squeeze()
+    min_shape = min(image.shape[2:])
+    image = image[..., :min_shape, :min_shape]
+    return image
+
+
+def parse_nd(filename: os.PathLike) -> dict:
     """Parse .nd configuration files as dictionary."""
     if not os.path.exists(filename):
         raise ValueError(f"File {filename} does not exist.")
@@ -32,7 +44,7 @@ def parse_nd(filename: str) -> dict:
     return nd_data
 
 
-def open_nd_file(fname_nd: str) -> np.ndarray:
+def open_nd_file(fname_nd: os.PathLike) -> np.ndarray:
     """Read and merge all files mentioned in one nd file as uint16."""
     nd_data = parse_nd(fname_nd)
     basename = os.path.splitext(fname_nd)[0]
@@ -155,10 +167,32 @@ class Preprocess(luigi.Task):
         )
 
     def run(self):
-        input_name = os.path.join(General().image_dir, f"{self.FileID}.nd")
-        image = open_nd_file(input_name)
+        image = self.open_image()
         image = self.register_image(image)
         skimage.io.imsave(self.output().path, image, check_contrast=False)
+
+    @property
+    def input_name(self):
+        """Return the absolute path to the input file with recursive globbing."""
+        files = glob.glob(
+            os.path.join(
+                General().image_dir, "**", f"{self.FileID}.{General().file_ext}"
+            ),
+            recursive=True,
+        )
+        if len(files) != 1:
+            raise ValueError(f"Could not find unique file for {self.FileID}.")
+        return files[0]
+
+    def open_image(self) -> np.ndarray:
+        """Open image file based on file extension."""
+        if General().file_ext == "nd":
+            return open_nd_file(self.input_name)
+        if General().file_ext == "czi":
+            return open_czi_file(self.input_name)
+        raise ValueError(
+            f"Unknown file extension: {General().file_ext}. Use nd or czi."
+        )
 
     def register_image(self, image: np.ndarray) -> np.ndarray:
         if image.ndim != 4:
@@ -185,6 +219,7 @@ class Preprocess(luigi.Task):
             image = image[:, frame_start:frame_end]
 
         if PreprocessingAlignment().enabled:
+            self.logger.info(f"Registering image {self.FileID}.")
             self.load_alignment()
             image = self.align_image(image)
 

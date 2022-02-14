@@ -5,6 +5,7 @@ import luigi
 class General(luigi.Config):
     image_dir = luigi.Parameter(description="Directory with raw nd/stk files.")
     analysis_dir = luigi.Parameter(description="Directory to save analysis results.")
+    file_ext = luigi.Parameter(description="File extension of raw files (nd or czi).")
     do_3D = luigi.BoolParameter(description="Do 3D analysis.")
     do_TimeSeries = luigi.BoolParameter(description="Do TimeSeries analysis.")
 
@@ -62,7 +63,9 @@ class SpotsColocalization(luigi.Config):
 
 class SegmentationPrimary(luigi.Config):
     channel = luigi.IntParameter(description="Channel index (0-indexed).")
-    model = luigi.Parameter(description="Cellpose model for segmenation (cyto / nuclei).")
+    model = luigi.Parameter(
+        description="Cellpose model for segmenation (cyto / nuclei)."
+    )
     diameter = luigi.IntParameter(description="Diameter for cellpose.")
     resample = luigi.BoolParameter(
         description="If segmap should be resampled (slower, more accurate).",
