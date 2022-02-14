@@ -8,10 +8,12 @@ import scipy
 
 from config import General, SpotsDetection
 from config import SpotsColocalization
+from detect import Detect
 from track import Track
 
 
-class Colocalize(luigi.Task):
+class ColocalizeFrame(luigi.Task):
+    """"""
 
     FileID = luigi.Parameter()
     ChannelPairIndex = luigi.IntParameter()
@@ -25,8 +27,8 @@ class Colocalize(luigi.Task):
         index_one = channel_detect.index(self.channel_pair[0])
         index_two = channel_detect.index(self.channel_pair[1])
         return [
-            Track(FileID=self.FileID, ChannelIndex=index_one),
-            Track(FileID=self.FileID, ChannelIndex=index_two),
+            Detect(FileID=self.FileID, ChannelIndex=index_one),
+            Detect(FileID=self.FileID, ChannelIndex=index_two),
         ]
 
     def output(self):
@@ -39,22 +41,20 @@ class Colocalize(luigi.Task):
         )
 
     def run(self):
-        track_one = pd.read_parquet(self.requires()[0].output().path)
-        track_two = pd.read_parquet(self.requires()[1].output().path)
+        df_one = pd.read_parquet(self.requires()[0].output().path)
+        df_two = pd.read_parquet(self.requires()[1].output().path)
 
         # Colocalize both channels
-        coloc_one, coloc_two = self.colocalize_tracks(track_one, track_two)
-        for idx_one, idx_two in zip(coloc_one, coloc_two):
-            track_one.loc[
-                track_one["particle"] == idx_one, ["coloc_particle"]
-            ] = idx_two
-            track_two.loc[
-                track_two["particle"] == idx_two, ["coloc_particle"]
-            ] = idx_one
+        coloc_one, coloc_two = self.colocalize_frame(df_one, df_two)
+        df_one["particle"] = df_one.index + 1
+        df_two["particle"] = df_two.index + 1
+        df_one["coloc_particle"] = 0
+        df_two["coloc_particle"] = 0
+        df_one.loc[coloc_one, "coloc_particle"] = coloc_two
+        df_two.loc[coloc_two, "coloc_particle"] = coloc_one
 
         # Merge
-        track = pd.concat([track_one, track_two])
-        track.insert(loc=0, column="FileID", value=self.FileID)
+        track = pd.concat([df_one, df_two])
         track.to_parquet(self.output().path)
 
     @staticmethod
@@ -81,6 +81,37 @@ class Colocalize(luigi.Task):
                 cols = cols[cols != c]
 
         return rows, cols
+
+
+class ColocalizeTrack(ColocalizeFrame):
+    """"""
+
+    def requires(self):
+        channel_detect = SpotsDetection().channels
+        index_one = channel_detect.index(self.channel_pair[0])
+        index_two = channel_detect.index(self.channel_pair[1])
+        return [
+            Track(FileID=self.FileID, ChannelIndex=index_one),
+            Track(FileID=self.FileID, ChannelIndex=index_two),
+        ]
+
+    def run(self):
+        track_one = pd.read_parquet(self.requires()[0].output().path)
+        track_two = pd.read_parquet(self.requires()[1].output().path)
+
+        # Colocalize both channels
+        coloc_one, coloc_two = self.colocalize_tracks(track_one, track_two)
+        for idx_one, idx_two in zip(coloc_one, coloc_two):
+            track_one.loc[
+                track_one["particle"] == idx_one, ["coloc_particle"]
+            ] = idx_two
+            track_two.loc[
+                track_two["particle"] == idx_two, ["coloc_particle"]
+            ] = idx_one
+
+        # Merge
+        track = pd.concat([track_one, track_two])
+        track.to_parquet(self.output().path)
 
     def colocalize_tracks(
         self, track_one: pd.DataFrame, track_two: pd.DataFrame
