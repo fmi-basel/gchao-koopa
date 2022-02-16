@@ -129,3 +129,7 @@ dmypy.json
 .pyre/
 log_luigi/
 *.h5
+
+.vscode/
+*.csv
+*.pdf
