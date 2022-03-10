@@ -150,6 +150,6 @@ class Merge(luigi.Task):
                 df[f"other_{c}"] = df.apply(
                     lambda row: self.get_value(row, other),
                     axis=1,
-                )
+                ).astype(bool)
 
         return df
