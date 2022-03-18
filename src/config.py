@@ -13,6 +13,10 @@ class General(luigi.Config):
 class PreprocessingAlignment(luigi.Config):
     enabled = luigi.BoolParameter(description="Align images.")
     alignment_dir = luigi.Parameter(description="Directory with bead alignment files.")
+    method = luigi.Parameter(
+        description="Strategy for image registration (pystackreg or deepblink)."
+    )
+    model = luigi.Parameter(description="Deepblink model to use for alignment.")
     channel_reference = luigi.IntParameter(description="Channel index for reference.")
     channel_alignment = luigi.IntParameter(description="Channel index for alignment.")
 
