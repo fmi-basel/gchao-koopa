@@ -1,4 +1,3 @@
-from cgitb import enable
 import luigi
 
 
@@ -82,6 +81,12 @@ class SegmentationSecondary(luigi.Config):
     channel = luigi.IntParameter(description="Channel index (0-indexed).")
     method = luigi.Parameter(description="Method for secondary segmentation.")
     value = luigi.FloatParameter(description="Value for secondary segmentation.")
+    upper_clip = luigi.FloatParameter(
+        description="Upper percentile for clipping image."
+    )
+    gaussian = luigi.FloatParameter(
+        description="Sigma for gaussian filter before thresholding."
+    )
 
 
 class SegmentationOther(luigi.Config):

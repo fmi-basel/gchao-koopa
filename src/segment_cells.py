@@ -6,6 +6,8 @@ import luigi
 import numpy as np
 import skimage.filters
 import skimage.io
+import skimage.morphology
+import skimage.segmentation
 import tifffile
 import torch
 
@@ -95,6 +97,8 @@ class SegmentSecondary(luigi.Task):
     @staticmethod
     def foreground_segmentation(image: np.ndarray) -> np.ndarray:
         method = SegmentationSecondary().method
+        image = np.clip(image, 0, np.quantile(image, SegmentationSecondary().upper_clip))
+        image = skimage.filters.gaussian(image, SegmentationSecondary().gaussian)
         if method == "otsu":
             return image > skimage.filters.threshold_otsu(image)
         if method == "li":
