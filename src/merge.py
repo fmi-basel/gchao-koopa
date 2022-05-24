@@ -90,6 +90,7 @@ class Merge(luigi.Task):
 
     def run(self):
         """Merge all analysis files into a single summary file."""
+        # TODO add multiprocessing support taking luigi workers into account
         dfs = [
             self.merge_file(fname)
             for fname in tqdm(self.file_list, desc="Merging files")
@@ -122,9 +123,16 @@ class Merge(luigi.Task):
 
     def get_value(self, row: pd.Series, image: np.ndarray) -> int:
         if image.ndim == 3:
-            return image[int(row["frame"]), int(row["y"]), int(row["x"])]
+            return image[
+                int(row["frame"]),
+                min(int(row["y"]), image.shape[1] - 1),
+                min(int(row["x"]), image.shape[2] - 1),
+            ]
         if image.ndim == 2:
-            return image[int(row["y"]), int(row["x"])]
+            return image[
+                min(int(row["y"]), image.shape[0] - 1),
+                min(int(row["x"]), image.shape[1] - 1),
+            ]
         raise ValueError(f"Segmentation image must be 2D or 3D. Got {image.ndim}D.")
 
     def merge_file(self, file_id: str):

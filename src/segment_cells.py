@@ -49,7 +49,7 @@ class SegmentPrimary(luigi.Task):
 
         # Squeeze image along time dimension
         if not General().do_3D and General().do_TimeSeries:
-            image = np.max(image, axis=0).astype(np.uint16)
+            image = np.mean(image, axis=0).astype(np.uint16)
             self.logger.info("Squeezed image along time dimension.")
 
         if General().do_3D:
@@ -97,7 +97,9 @@ class SegmentSecondary(luigi.Task):
     @staticmethod
     def foreground_segmentation(image: np.ndarray) -> np.ndarray:
         method = SegmentationSecondary().method
-        image = np.clip(image, 0, np.quantile(image, SegmentationSecondary().upper_clip))
+        image = np.clip(
+            image, 0, np.quantile(image, SegmentationSecondary().upper_clip)
+        )
         image = skimage.filters.gaussian(image, SegmentationSecondary().gaussian)
         if method == "otsu":
             return image > skimage.filters.threshold_otsu(image)
