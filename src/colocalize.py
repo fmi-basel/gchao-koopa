@@ -13,7 +13,7 @@ from track import Track
 
 
 class ColocalizeFrame(luigi.Task):
-    """"""
+    """Colocalize spots in a channel pair of frames."""
 
     FileID = luigi.Parameter()
     ChannelPairIndex = luigi.IntParameter()
@@ -84,7 +84,7 @@ class ColocalizeFrame(luigi.Task):
 
 
 class ColocalizeTrack(ColocalizeFrame):
-    """"""
+    """Colocalize all frames in a track."""
 
     def requires(self):
         channel_detect = SpotsDetection().channels

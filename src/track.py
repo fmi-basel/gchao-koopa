@@ -14,6 +14,7 @@ tp.quiet()
 
 
 class Track(luigi.Task):
+    """Join spots to tracks in a 2D+T image."""
 
     FileID = luigi.Parameter()
     ChannelIndex = luigi.IntParameter()

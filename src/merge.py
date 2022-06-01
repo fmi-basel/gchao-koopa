@@ -1,4 +1,5 @@
 import glob
+import multiprocessing
 import os
 
 from tqdm import tqdm
@@ -90,11 +91,9 @@ class Merge(luigi.Task):
 
     def run(self):
         """Merge all analysis files into a single summary file."""
-        # TODO add multiprocessing support taking luigi workers into account
-        dfs = [
-            self.merge_file(fname)
-            for fname in tqdm(self.file_list, desc="Merging files")
-        ]
+        # TODO take luigi workers into account (and potential memory overflows)
+        with multiprocessing.Pool(multiprocessing.cpu_count() // 2) as pool:
+            dfs = pool.map(self.merge_file, self.file_list)
         df = pd.concat(dfs, ignore_index=True)
         df.to_csv(self.output().path, index=False)
 
