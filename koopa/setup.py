@@ -21,6 +21,7 @@ class SetupPipeline(luigi.Task):
     def run(self):
         self.create_directories()
         config = configparser.ConfigParser()
+        # TODO change to dynamic path based on input
         config.read("./luigi.cfg")
         config["Versioning"] = {
             "timestamp": self.get_timestamp(),
@@ -64,6 +65,7 @@ class SetupPipeline(luigi.Task):
             path = os.path.join(General().analysis_dir, folder)
             os.makedirs(path, exist_ok=True)
 
+	# TODO change to version number instead of hash
     @staticmethod
     def get_git_hash():
         return (

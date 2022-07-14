@@ -26,16 +26,6 @@ from track import Track
 class Merge(luigi.Task):
     """Task to merge workflow tasks into a summary and initiate paralellization."""
 
-    force = luigi.BoolParameter(significant=False, default=False)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.force is True:
-            outputs = luigi.task.flatten(self.output())
-            for out in outputs:
-                if out.exists():
-                    os.remove(self.output().path)
-
     @property
     def file_list(self):
         files = sorted(
