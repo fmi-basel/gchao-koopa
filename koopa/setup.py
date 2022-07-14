@@ -5,11 +5,11 @@ import subprocess
 
 import luigi
 
-from config import General
-from config import SegmentationOther
-from config import SegmentationSecondary
-from config import SpotsDetection
-from config import SpotsColocalization
+from .config import General
+from .config import SegmentationOther
+from .config import SegmentationSecondary
+from .config import SpotsColocalization
+from .config import SpotsDetection
 
 
 class SetupPipeline(luigi.Task):

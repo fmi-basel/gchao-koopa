@@ -3,16 +3,18 @@ import os
 from tqdm import tqdm
 import luigi
 import numpy as np
-import segmentation_models as sm
+
+with open(os.devnull, "w") as devnull:
+    import segmentation_models as sm
 import skimage.exposure
 import skimage.filters
 import skimage.morphology
 import tensorflow as tf
 import tifffile
 
-from config import General
-from config import SegmentationOther
-from preprocess import Preprocess
+from .config import General
+from .config import SegmentationOther
+from .preprocess import Preprocess
 
 
 class SegmentOther(luigi.Task):

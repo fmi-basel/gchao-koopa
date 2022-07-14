@@ -1,4 +1,4 @@
-from typing import Iterable, List, Literal
+from typing import Iterable, Literal
 import glob
 import logging
 import os
@@ -14,10 +14,10 @@ import scipy.optimize
 import scipy.spatial
 import skimage.io
 
-from config import General
-from config import PreprocessingAlignment
-from config import PreprocessingNormalization
-from setup import SetupPipeline
+from .config import General
+from .config import PreprocessingAlignment
+from .config import PreprocessingNormalization
+from .setup import SetupPipeline
 
 
 def open_czi_file(fname_czi: os.PathLike) -> np.ndarray:

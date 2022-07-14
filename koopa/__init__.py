@@ -4,6 +4,7 @@ __version__ = "0.0.1"
 
 from . import cli
 from . import colocalize
+from . import config
 from . import detect
 from . import merge
 from . import preprocess

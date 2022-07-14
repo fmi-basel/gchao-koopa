@@ -5,10 +5,10 @@ import luigi
 import pandas as pd
 import trackpy as tp
 
-from config import General
-from config import SpotsDetection
-from config import SpotsTracking
-from detect import Detect
+from .config import General
+from .config import SpotsDetection
+from .config import SpotsTracking
+from .detect import Detect
 
 tp.quiet()
 

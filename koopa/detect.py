@@ -10,9 +10,9 @@ import tensorflow as tf
 import tifffile
 import trackpy as tp
 
-from config import General
-from config import SpotsDetection
-from preprocess import Preprocess
+from .config import General
+from .config import SpotsDetection
+from .preprocess import Preprocess
 
 tp.quiet()
 

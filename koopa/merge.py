@@ -2,25 +2,24 @@ import glob
 import multiprocessing
 import os
 
-from tqdm import tqdm
 import luigi
 import numpy as np
 import pandas as pd
 import tifffile
 
-from config import General
-from config import SegmentationOther
-from config import SegmentationSecondary
-from config import SpotsColocalization
-from config import SpotsDetection
+from .colocalize import ColocalizeFrame
+from .colocalize import ColocalizeTrack
+from .config import General
+from .config import SegmentationOther
+from .config import SegmentationSecondary
+from .config import SpotsColocalization
+from .config import SpotsDetection
+from .detect import Detect
+from .segment_cells import SegmentPrimary
+from .segment_cells import SegmentSecondary
+from .segment_other import SegmentOther
+from .track import Track
 
-from colocalize import ColocalizeFrame
-from colocalize import ColocalizeTrack
-from detect import Detect
-from segment_cells import SegmentPrimary
-from segment_cells import SegmentSecondary
-from segment_other import SegmentOther
-from track import Track
 
 
 class Merge(luigi.Task):

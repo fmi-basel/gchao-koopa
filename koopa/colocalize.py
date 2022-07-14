@@ -6,10 +6,11 @@ import numpy as np
 import pandas as pd
 import scipy
 
-from config import General, SpotsDetection
-from config import SpotsColocalization
-from detect import Detect
-from track import Track
+from .config import General
+from .config import SpotsColocalization
+from .config import SpotsDetection
+from .detect import Detect
+from .track import Track
 
 
 class ColocalizeFrame(luigi.Task):

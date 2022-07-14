@@ -28,7 +28,7 @@ setup(
         "numpy",
         "pandas",
         "scipy",
-        "skimage",
+        "scikit-image",
         "tifffile==2020.09.03",
         "torch",
         "tqdm",

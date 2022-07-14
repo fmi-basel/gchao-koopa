@@ -1,7 +1,9 @@
 import logging
 import os
 
-from cellpose import models
+
+with open(os.devnull, "w") as devnull:
+    from cellpose import models
 import luigi
 import numpy as np
 import skimage.filters
@@ -11,10 +13,10 @@ import skimage.segmentation
 import tifffile
 import torch
 
-from config import General
-from config import SegmentationPrimary
-from config import SegmentationSecondary
-from preprocess import Preprocess
+from .config import General
+from .config import SegmentationPrimary
+from .config import SegmentationSecondary
+from .preprocess import Preprocess
 
 
 class SegmentPrimary(luigi.Task):
