@@ -39,11 +39,27 @@ koopa --config <path-to-config-file> --workers <number-of-workers>
 
 Koopa is composed of a few number of luigi tasks that are connected.
 
+* `SetupPipeline` - Initialized all folders and copies the configuration file.
+* `ReferenceAlignment` - Creates a transformation matrix from the bead images.
+* `Preprocess` - Opens, trims, aligns images depending on selection and saves them as tif.
+* `Detect` - Raw spot detection on a single image/movie.
+* `Track` - Linking of separated spots along time.
+* `ColocalizeFrame` - Colocalize a pair of channels in a single time frame using linear sum assignment.
+* `ColocalizeTrack` - Colocalize track pairs across a movie.
+* `SegmentPrimary` - Segmentation of the main channel using cellpose (either on nuclei or cytoplasm).
+* `SegmentSecondary` - Segmentation of the other channel (cytoplasm or nucleus respectively) using matematical filters.
+* `SegmentOther` - Segmentation of additional features/channels using `segmentation_models` or mathematical filters.
+* `Merge` - Combination of all tasks above (that have run on single images) into one summary file for downstream analyses.
+
 ## TODO
 
 * [ ] Add alignment for multiple channels
 * [ ] Add colocalization for 3D case
-* [ ] Add functional overview
-* [ ] Add option to measure distance of spot from nuclear envelope
+* [x] Add functional overview
+* [ ] Add some integration tests
+  * [ ] FISH 2D - subset of specles
+  * [ ] FISH 3D - subset of smonster?
+  * [ ] Live cell - subset of smonster
+* [x] Add option to measure distance of spot from nuclear envelope
 * [x] Check cfg file and overwrite on changes?
 * [x] Create folders while using - not at the beginning

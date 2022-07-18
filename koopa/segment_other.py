@@ -1,3 +1,5 @@
+"""Segment other features."""
+
 import os
 
 from tqdm import tqdm
@@ -77,6 +79,7 @@ class SegmentOther(luigi.Task):
         return image[None]
 
     def segment_deep(self, image: np.ndarray) -> np.ndarray:
+        """Segmentation using deep `segmentation_models`."""
         image = self.preprocess_image(image)
         mask = self.model.predict(image).squeeze()
         mask = mask[: -self.pad_bottom, : -self.pad_right]
@@ -85,7 +88,6 @@ class SegmentOther(luigi.Task):
 
     def segment(self, image: np.ndarray) -> np.ndarray:
         """Segment marker labels with pre-trained model or traditionally."""
-
         method = SegmentationOther().methods[self.ChannelIndex]
 
         # Preparation

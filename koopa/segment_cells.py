@@ -1,3 +1,5 @@
+"""Segment cells primary and secondary."""
+
 import logging
 import os
 
@@ -98,6 +100,7 @@ class SegmentSecondary(luigi.Task):
 
     @staticmethod
     def foreground_segmentation(image: np.ndarray) -> np.ndarray:
+        """Segmentation of the channel of interest."""
         method = SegmentationSecondary().method
         image = np.clip(
             image, 0, np.quantile(image, SegmentationSecondary().upper_clip)
@@ -114,6 +117,7 @@ class SegmentSecondary(luigi.Task):
     def segment_secondary(
         self, primary: np.ndarray, secondary: np.ndarray
     ) -> np.ndarray:
+        """Segmentation removing previously completed primary segmentation."""
         foreground = self.foreground_segmentation(secondary)
         foreground = skimage.morphology.remove_small_objects(foreground)
 

@@ -1,3 +1,5 @@
+"""Prepare pipeline."""
+
 import configparser
 import datetime
 import os
@@ -55,7 +57,7 @@ class SetupPipeline(luigi.Task):
         if SpotsColocalization().enabled:
             for channel_pair in SpotsColocalization().channels:
                 for c in channel_pair:
-                    if not c in SpotsDetection().channels:
+                    if c not in SpotsDetection().channels:
                         raise ValueError(
                             f'Colocalization channel "{c}" '
                             "not listed in detection channels."
@@ -70,6 +72,7 @@ class SetupPipeline(luigi.Task):
 
     @property
     def git_hash():
+        """Find current githash as version proxy."""
         return (
             subprocess.check_output(["git", "rev-parse", "HEAD"])
             .decode("ascii")
@@ -78,8 +81,10 @@ class SetupPipeline(luigi.Task):
 
     @property
     def version():
+        """Koopa version number."""
         return __version__
 
     @staticmethod
     def timestamp():
+        """Current unix timestamp."""
         return str(datetime.datetime.now().timestamp())

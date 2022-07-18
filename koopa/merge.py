@@ -1,3 +1,5 @@
+"""Merge all tasks to summary."""
+
 import glob
 import multiprocessing
 import os
@@ -88,6 +90,7 @@ class Merge(luigi.Task):
         df.to_csv(self.output().path, index=False)
 
     def read_spots_file(self, file_id: str) -> pd.DataFrame:
+        """Read the last important spot files dependent on selected config."""
         if SpotsColocalization().enabled:
             dfs = [
                 pd.read_parquet(
@@ -108,9 +111,11 @@ class Merge(luigi.Task):
         return pd.concat(dfs, ignore_index=True)
 
     def read_image_file(self, file_id: str, name: str) -> np.ndarray:
+        """Read image file called `name` of file `file_id`."""
         return tifffile.imread(self.requires()[file_id][name].output().path)
 
     def get_value(self, row: pd.Series, image: np.ndarray) -> int:
+        """Get pixel intensity from coordinate value."""
         if image.ndim == 3:
             return image[
                 int(row["frame"]),
@@ -139,6 +144,7 @@ class Merge(luigi.Task):
         return distances
 
     def merge_file(self, file_id: str):
+        """Merge all components of a single file `file_id`."""
         df = self.read_spots_file(file_id)
 
         # Primary segmentation

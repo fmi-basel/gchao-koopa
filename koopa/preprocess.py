@@ -1,3 +1,5 @@
+"""Image preprocessing."""
+
 from typing import Iterable, Literal
 import glob
 import logging
@@ -110,6 +112,7 @@ def register_coordinates(
 
 def compute_affine_transform(reference: Iterable, transform: Iterable) -> np.ndarray:
     """Compute the affine transform by point set registration.
+
     The affine transform is the composition of a translation and a linear map.
     The two ordered lists of points must be of the same length larger or equal to 3.
     The order of the points in the two list must match.

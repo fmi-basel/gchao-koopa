@@ -37,6 +37,7 @@ CONFIGS = [
 
 
 def _parse_args():
+    """Basic argument parser."""
     parser = argparse.ArgumentParser(prog="Koopa", description="")
     parser.add_argument(
         "--create-config",
@@ -70,7 +71,7 @@ def create_config():
 
 
 def run_pipeline(config_file):
-    """Run standard """
+    """Run standard."""
     luigi.configuration.add_config_path(config_file)
     old_config_file = os.path.join(General().analysis_dir, "luigi.cfg")
     if os.path.exists(old_config_file):

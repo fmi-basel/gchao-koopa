@@ -1,3 +1,5 @@
+"""Raw spot detection."""
+
 import logging
 import os
 
@@ -89,6 +91,7 @@ class Detect(luigi.Task):
         return df
 
     def load_deepblink_model(self):
+        """Set environment variables and load deepBlink model."""
         os.environ["OMP_NUM_THREADS"] = "10"
         os.environ["OPENBLAS_NUM_THREADS"] = "10"
         os.environ["MKL_NUM_THREADS"] = "10"

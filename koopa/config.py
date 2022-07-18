@@ -1,3 +1,5 @@
+"""Luigi configuration."""
+
 import luigi
 
 

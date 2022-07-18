@@ -1,3 +1,5 @@
+"""Frame and track colocalization."""
+
 from typing import Tuple
 import os
 
@@ -123,7 +125,6 @@ class ColocalizeTrack(ColocalizeFrame):
             the entire movie. Return the particle numbers which
             colocalized in along at least "min_coloc_tracks" frames.
         """
-
         # Create track assignment matrix
         assignments = np.zeros(
             (track_one["particle"].nunique(), track_two["particle"].nunique())

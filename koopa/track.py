@@ -1,3 +1,5 @@
+"""Time tracking."""
+
 import logging
 import os
 
