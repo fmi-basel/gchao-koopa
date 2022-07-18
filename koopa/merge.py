@@ -5,11 +5,13 @@ import os
 import luigi
 import numpy as np
 import pandas as pd
+import scipy.ndimage as ndi
 import tifffile
 
 from .colocalize import ColocalizeFrame
 from .colocalize import ColocalizeTrack
 from .config import General
+from .config import SegmentationPrimary
 from .config import SegmentationOther
 from .config import SegmentationSecondary
 from .config import SpotsColocalization
@@ -19,7 +21,6 @@ from .segment_cells import SegmentPrimary
 from .segment_cells import SegmentSecondary
 from .segment_other import SegmentOther
 from .track import Track
-
 
 
 class Merge(luigi.Task):
@@ -123,6 +124,20 @@ class Merge(luigi.Task):
             ]
         raise ValueError(f"Segmentation image must be 2D or 3D. Got {image.ndim}D.")
 
+    def get_distance_from_segmap(
+        self, df: pd.DataFrame, segmap: np.ndarray, identifier: str
+    ) -> list:
+        """Measure the distance of the spot to the periphery of a segmap."""
+        distances = []
+        for cell_id, dfg in df.groupby(identifier):
+            mask = segmap == cell_id
+            erosion = ndi.binary_erosion(mask)
+            arr1 = np.array(np.where(np.bitwise_xor(erosion, mask))).T
+            arr2 = dfg[["y", "x"]].values
+            rmsd = np.mean(np.sqrt((arr1[None, :] - arr2[:, None]) ** 2), axis=2)
+            distances.extend(np.min(rmsd, axis=1))
+        return distances
+
     def merge_file(self, file_id: str):
         df = self.read_spots_file(file_id)
 
@@ -130,6 +145,8 @@ class Merge(luigi.Task):
         primary = self.read_image_file(file_id, "primary")
         df["primary"] = df.apply(lambda row: self.get_value(row, primary), axis=1)
         df["primary_count"] = len(np.unique(primary)) - 1
+        if SegmentationPrimary().border_distance:
+            df["distance_from_primary"] = self.get_distance_from_segmap(df, primary)
 
         # Secondary segmentation
         if SegmentationSecondary().enabled:
@@ -138,6 +155,10 @@ class Merge(luigi.Task):
                 lambda row: self.get_value(row, secondary),
                 axis=1,
             )
+            if SegmentationSecondary().border_distance:
+                df["distance_from_secondary"] = self.get_distance_from_segmap(
+                    df, secondary
+                )
 
         # Other segmentation
         if SegmentationOther().enabled:

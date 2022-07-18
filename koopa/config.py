@@ -108,6 +108,10 @@ class SegmentationPrimary(luigi.Config):
     min_size = luigi.IntParameter(
         description="Minimum cytoplasm size for cellpose.", default=15
     )
+    border_distance = luigi.BoolParameter(
+        description="Add a column where the distance of each spot to the perifery is measured.",
+        default=False,
+    )
 
 
 class SegmentationSecondary(luigi.Config):
@@ -127,6 +131,10 @@ class SegmentationSecondary(luigi.Config):
     )
     gaussian = luigi.FloatParameter(
         description="Sigma for gaussian filter before thresholding.", default=5
+    )
+    border_distance = luigi.BoolParameter(
+        description="Add a column where the distance of each spot to the perifery is measured.",
+        default=False,
     )
 
 
