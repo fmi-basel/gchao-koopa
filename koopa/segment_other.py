@@ -111,6 +111,9 @@ class SegmentOther(luigi.Task):
                 return image > skimage.filters.threshold_otsu(image)
             elif method == "li":
                 return image > skimage.filters.threshold_li(image)
+            elif method == "multiotsu":
+                # Default 3 classes -> 2nd highest class chosen
+                return image > skimage.filters.threshold_multiotsu(image)[1]
             raise ValueError(f"Unknown other segmentation method {method}.")
 
         masks = [__single_frame(i) for i in tqdm(image)]
