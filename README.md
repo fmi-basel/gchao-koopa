@@ -45,5 +45,5 @@ Koopa is composed of a few number of luigi tasks that are connected.
 * [ ] Add colocalization for 3D case
 * [ ] Add functional overview
 * [ ] Add option to measure distance of spot from nuclear envelope
-* [ ] Check cfg file and overwrite on changes?
-* [ ] Create folders while using - not at the beginning
+* [x] Check cfg file and overwrite on changes?
+* [x] Create folders while using - not at the beginning

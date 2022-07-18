@@ -1,6 +1,7 @@
 """Command line interface."""
 
 import argparse
+import configparser
 import io
 import os
 import sys
@@ -9,10 +10,30 @@ import luigi
 
 sys.stdout = io.StringIO()
 from .config import General
+from .config import PreprocessingAlignment
+from .config import PreprocessingNormalization
+from .config import SegmentationOther
+from .config import SegmentationPrimary
+from .config import SegmentationSecondary
+from .config import SpotsColocalization
+from .config import SpotsDetection
+from .config import SpotsTracking
 from .merge import Merge
 from .setup import SetupPipeline
 
 sys.stdout = sys.__stdout__
+
+CONFIGS = [
+    General,
+    PreprocessingAlignment,
+    PreprocessingNormalization,
+    SpotsDetection,
+    SpotsTracking,
+    SpotsColocalization,
+    SegmentationPrimary,
+    SegmentationSecondary,
+    SegmentationOther,
+]
 
 
 def _parse_args():
@@ -30,12 +51,38 @@ def _parse_args():
     return args
 
 
+def create_config():
+    """Create a configuration file with default values."""
+    config = configparser.ConfigParser(allow_no_value=True)
+
+    for section in CONFIGS:
+        config.add_section(section.__name__)
+        for name, param in section().get_params():
+            config.set(section.__name__, f"# {name}", param.description)
+            config.set(
+                section.__name__,
+                name,
+                "" if param._default is None else str(param._default),
+            )
+
+    with open("luigi.cfg", "w") as f:
+        config.write(f)
+
+
+def run_pipeline(config_file):
+    """Run standard """
+    luigi.configuration.add_config_path(config_file)
+    old_config_file = os.path.join(General().analysis_dir, "luigi.cfg")
+    if os.path.exists(old_config_file):
+        os.remove(old_config_file)
+    luigi.build([SetupPipeline(config_file=config_file), Merge()], local_scheduler=True)
+
+
 def main():
     """Run koopa tasks."""
     args = _parse_args()
     if args.create_config:
+        create_config()
         return 1
 
-    luigi.configuration.add_config_path(args.config_file)
-    os.remove(os.path.join(General().analysis_dir, "luigi.cfg"))
-    luigi.build([SetupPipeline(), Merge()], local_scheduler=True)
+    run_pipeline(args.config_file)

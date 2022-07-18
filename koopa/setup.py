@@ -5,6 +5,7 @@ import subprocess
 
 import luigi
 
+from . import __version__
 from .config import General
 from .config import SegmentationOther
 from .config import SegmentationSecondary
@@ -15,17 +16,19 @@ from .config import SpotsDetection
 class SetupPipeline(luigi.Task):
     """Version analysis workflow to ensure reproducible results."""
 
+    config_file = luigi.Parameter(default="./luigi.cfg")
+
     def output(self):
         return luigi.LocalTarget(os.path.join(General().analysis_dir, "luigi.cfg"))
 
     def run(self):
         self.create_directories()
         config = configparser.ConfigParser()
-        # TODO change to dynamic path based on input
-        config.read("./luigi.cfg")
+        config.read(self.config_file)
         config["Versioning"] = {
-            "timestamp": self.get_timestamp(),
-            "githash": self.get_git_hash(),
+            "timestamp": self.timestamp(),
+            "version": self.version(),
+            # "githash": self.git_hash(),
         }
         with open(self.output().path, "w") as configfile:
             config.write(configfile)
@@ -65,15 +68,18 @@ class SetupPipeline(luigi.Task):
             path = os.path.join(General().analysis_dir, folder)
             os.makedirs(path, exist_ok=True)
 
-	# TODO change to version number instead of hash
-    @staticmethod
-    def get_git_hash():
+    @property
+    def git_hash():
         return (
             subprocess.check_output(["git", "rev-parse", "HEAD"])
             .decode("ascii")
             .strip()
         )
 
+    @property
+    def version():
+        return __version__
+
     @staticmethod
-    def get_timestamp():
+    def timestamp():
         return str(datetime.datetime.now().timestamp())
