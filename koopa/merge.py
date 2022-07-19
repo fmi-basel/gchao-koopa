@@ -1,6 +1,7 @@
 """Merge all tasks to summary."""
 
 import glob
+import logging
 import multiprocessing
 import os
 
@@ -28,8 +29,12 @@ from .track import Track
 class Merge(luigi.Task):
     """Task to merge workflow tasks into a summary and initiate paralellization."""
 
+    logger = logging.getLogger("luigi-interface")
+    threads = luigi.IntParameter()
+
     @property
     def file_list(self):
+        """All file basenames in the image directory."""
         files = sorted(
             glob.glob(
                 os.path.join(General().image_dir, "**", f"*.{General().file_ext}"),
@@ -41,10 +46,17 @@ class Merge(luigi.Task):
         ]
         if len(files) != len(set(files)):
             raise ValueError("Found duplicate file names in image directory.")
+        if not len(files):
+            raise ValueError(
+                f"No files found in directory `{General().image_dir}` "
+                f"with extension `{General().file_ext}`!"
+            )
         return files
 
     def requires(self):
-        requiredInputs = {}
+        required_inputs = {}
+        self.logger.debug(f"Using files - {self.file_list}")
+
         for fname in self.file_list:
             required = {}
 
@@ -75,16 +87,17 @@ class Merge(luigi.Task):
                         else ColocalizeFrame(FileID=fname, ChannelPairIndex=idx)
                     )
 
-            requiredInputs[fname] = required
-        return requiredInputs
+            required_inputs[fname] = required
+
+        self.logger.debug(f"Required inputs - {required_inputs}")
+        return required_inputs
 
     def output(self):
         return luigi.LocalTarget(os.path.join(General().analysis_dir, "summary.csv"))
 
     def run(self):
         """Merge all analysis files into a single summary file."""
-        # TODO take luigi workers into account (and potential memory overflows)
-        with multiprocessing.Pool(multiprocessing.cpu_count() // 2) as pool:
+        with multiprocessing.Pool(self.threads) as pool:
             dfs = pool.map(self.merge_file, self.file_list)
         df = pd.concat(dfs, ignore_index=True)
         df.to_csv(self.output().path, index=False)
@@ -152,7 +165,9 @@ class Merge(luigi.Task):
         df["primary"] = df.apply(lambda row: self.get_value(row, primary), axis=1)
         df["primary_count"] = len(np.unique(primary)) - 1
         if SegmentationPrimary().border_distance:
-            df["distance_from_primary"] = self.get_distance_from_segmap(df, primary)
+            df["distance_from_primary"] = self.get_distance_from_segmap(
+                df, primary, "primary"
+            )
 
         # Secondary segmentation
         if SegmentationSecondary().enabled:
@@ -163,7 +178,7 @@ class Merge(luigi.Task):
             )
             if SegmentationSecondary().border_distance:
                 df["distance_from_secondary"] = self.get_distance_from_segmap(
-                    df, secondary
+                    df, secondary, "secondary"
                 )
 
         # Other segmentation

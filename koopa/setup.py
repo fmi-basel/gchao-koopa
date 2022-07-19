@@ -18,19 +18,19 @@ from .config import SpotsDetection
 class SetupPipeline(luigi.Task):
     """Version analysis workflow to ensure reproducible results."""
 
-    config_file = luigi.Parameter(default="./luigi.cfg")
+    config_file = luigi.Parameter(default="./koopa.cfg")
 
     def output(self):
-        return luigi.LocalTarget(os.path.join(General().analysis_dir, "luigi.cfg"))
+        return luigi.LocalTarget(os.path.join(General().analysis_dir, "koopa.cfg"))
 
     def run(self):
         self.create_directories()
         config = configparser.ConfigParser()
         config.read(self.config_file)
         config["Versioning"] = {
-            "timestamp": self.timestamp(),
-            "version": self.version(),
-            # "githash": self.git_hash(),
+            "timestamp": self.timestamp,
+            "version": self.version,
+            # "githash": self.git_hash,
         }
         with open(self.output().path, "w") as configfile:
             config.write(configfile)
@@ -71,7 +71,7 @@ class SetupPipeline(luigi.Task):
             os.makedirs(path, exist_ok=True)
 
     @property
-    def git_hash():
+    def git_hash(self):
         """Find current githash as version proxy."""
         return (
             subprocess.check_output(["git", "rev-parse", "HEAD"])
@@ -80,11 +80,11 @@ class SetupPipeline(luigi.Task):
         )
 
     @property
-    def version():
+    def version(self):
         """Koopa version number."""
         return __version__
 
-    @staticmethod
-    def timestamp():
+    @property
+    def timestamp(self):
         """Current unix timestamp."""
         return str(datetime.datetime.now().timestamp())
