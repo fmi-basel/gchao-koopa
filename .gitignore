@@ -133,3 +133,4 @@ log_luigi/
 .vscode/
 *.csv
 *.pdf
+tests/data/

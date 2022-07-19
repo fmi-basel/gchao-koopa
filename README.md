@@ -51,15 +51,15 @@ Koopa is composed of a few number of luigi tasks that are connected.
 * `SegmentOther` - Segmentation of additional features/channels using `segmentation_models` or mathematical filters.
 * `Merge` - Combination of all tasks above (that have run on single images) into one summary file for downstream analyses.
 
-## TODO
+## Potential TODOs
 
 * [ ] Add alignment for multiple channels
 * [ ] Add colocalization for 3D case
+* [x] Add some integration tests
+  * [ ] FISH 3D - with proper data once available
+  * [x] FISH 2D - subset of specles
+  * [x] Live cell - subset of smonster
 * [x] Add functional overview
-* [ ] Add some integration tests
-  * [ ] FISH 2D - subset of specles
-  * [ ] FISH 3D - subset of smonster?
-  * [ ] Live cell - subset of smonster
 * [x] Add option to measure distance of spot from nuclear envelope
 * [x] Check cfg file and overwrite on changes?
 * [x] Create folders while using - not at the beginning
