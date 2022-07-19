@@ -10,6 +10,7 @@ import sys
 import luigi
 
 sys.stdout = io.StringIO()
+from . import __version__
 from .config import General
 from .config import PreprocessingAlignment
 from .config import PreprocessingNormalization
@@ -75,7 +76,7 @@ def _parse_args():
         "-V",
         "--version",
         action="version",
-        version="%(prog)s 0.0.1",
+        version="%(prog)s " + str(__version__),
         help="Show %(prog)s's version number.",
     )
     if len(sys.argv) == 1:

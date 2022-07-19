@@ -10,11 +10,17 @@ from setuptools import setup
 setup(
     # Description
     name="koopa",
-    version="0.0.1",
+    version="0.0.2",
     license="MIT",
     description="Workflow for analysis of cellular microscopy data.",
     long_description_content_type="text/plain",
-    long_description=textwrap.dedent(""""""),
+    long_description=textwrap.dedent(
+        """
+    Keenly optimized obliging picture analysis.
+    Koopa is a luigi-pipeline based workflow to analyze cellular microscopy data of varying types -
+    specializing on single particle analyses.
+    """
+    ),
     # Installation
     python_requires=">=3.7",
     packages=find_packages(),
