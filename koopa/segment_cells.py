@@ -8,6 +8,7 @@ with open(os.devnull, "w") as devnull:
     from cellpose import models
 import luigi
 import numpy as np
+import scipy.ndimage as ndi
 import skimage.filters
 import skimage.io
 import skimage.morphology
@@ -44,6 +45,31 @@ class SegmentPrimary(luigi.Task):
         skimage.io.imsave(self.output().path, segmap, check_contrast=False)
 
     def segment(self, image: np.ndarray) -> np.ndarray:
+        """Runner for segmentation options."""
+        method = SegmentationPrimary().method
+        if method not in ["otsu", "cellpose"]:
+            raise ValueError(f"Unknown secondary segmentation method {method}.")
+        if method == "otsu" and SegmentationPrimary().model != "nuclei":
+            raise ValueError("If method otsu is selected, model must be set to nuclei!")
+
+        if method == "otsu":
+            return self.segment_otsu(image)
+        if method == "cellpose":
+            return self.segment_cellpose(image)
+
+    def segment_otsu(self, image: np.ndarray) -> np.ndarray:
+        """Segment a file using mathematical filters into nuclear maps."""
+        self.logger.info("Started segmenting nuclei with otsu.")
+        image = skimage.filters.gaussian(image, sigma=SegmentationPrimary().gaussian)
+        image = image > skimage.filters.threshold_otsu(image)
+        image = ndi.binary_fill_holes(image)
+        image = skimage.morphology.remove_small_objects(
+            image, min_size=SegmentationPrimary().min_size
+        )
+        segmap = skimage.measure.label(image)
+        return segmap
+
+    def segment_cellpose(self, image: np.ndarray) -> np.ndarray:
         """Segment a file using cellpose into nuclear maps."""
         torch.set_num_threads(4)
         cellpose_model = models.Cellpose(
@@ -106,13 +132,22 @@ class SegmentSecondary(luigi.Task):
             image, 0, np.quantile(image, SegmentationSecondary().upper_clip)
         )
         image = skimage.filters.gaussian(image, SegmentationSecondary().gaussian)
+
+        if method not in ["otsu", "li", "triangle", "median"]:
+            raise ValueError(f"Unknown secondary segmentation method {method}.")
+
         if method == "otsu":
-            return image > skimage.filters.threshold_otsu(image)
+            image = image > skimage.filters.threshold_otsu(image)
         if method == "li":
-            return image > skimage.filters.threshold_li(image)
+            image = image > skimage.filters.threshold_li(image)
+        if method == "triangle":
+            image = image > skimage.filters.threshold_triangle(image)
         if method == "median":
-            return image > (np.median(image) * SegmentationSecondary().value)
-        raise ValueError(f"Unknown secondary segmentation method {method}.")
+            image = image > (np.median(image) * SegmentationSecondary().value)
+        image = skimage.morphology.remove_small_objects(
+            image, min_size=SegmentationSecondary().min_size
+        )
+        return image
 
     def segment_secondary(
         self, primary: np.ndarray, secondary: np.ndarray

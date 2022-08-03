@@ -42,9 +42,11 @@ class PreprocessingAlignment(luigi.Config):
 
 class PreprocessingNormalization(luigi.Config):
     registration = luigi.Parameter(
-        description="Registration method. "
-        "Ignored if do_3D or do_TimeSeries is set to True. "
-        "[options: max, mean, sharpes]",
+        description=(
+            "Registration method. "
+            "Ignored if do_3D or do_TimeSeries is set to True. "
+            "[options: max, mean, sharpes]"
+        ),
         default="max",
     )
     remove_n_frames = luigi.IntParameter(
@@ -59,8 +61,10 @@ class SpotsDetection(luigi.Config):
         description="List of channel indices (0-indexed) to detect spots.", default=[]
     )
     models = luigi.ListParameter(
-        description="List of models to use for spot detection. "
-        "Will use the same order as the channels provided above.",
+        description=(
+            "List of models to use for spot detection. "
+            "Will use the same order as the channels provided above."
+        ),
         default=[],
     )
     refinement_radius = luigi.IntParameter(
@@ -83,9 +87,11 @@ class SpotsColocalization(luigi.Config):
         description="Do colocalization analysis.", default=False
     )
     channels = luigi.ListParameter(
-        description="List of channel index-pairs (0-indexed) for colocalization. "
-        "In format of ([reference, secondary]). "
-        "Must contain channels from SpotsDetection.",
+        description=(
+            "List of channel index-pairs (0-indexed) for colocalization. "
+            "In format of ([reference, secondary]). "
+            "Must contain channels from SpotsDetection."
+        ),
         default=[[]],
     )
     distance_cutoff = luigi.IntParameter(
@@ -98,6 +104,13 @@ class SpotsColocalization(luigi.Config):
 
 class SegmentationPrimary(luigi.Config):
     channel = luigi.IntParameter(description="Channel index (0-indexed).", default=0)
+    method = luigi.Parameter(
+        description=(
+            "Method for primary segmentation (otsu only valid for nuclei). "
+            "[options: cellpose, otsu]"
+        ),
+        default="cellpose",
+    )
     model = luigi.Parameter(
         description="Cellpose model for segmenation. [options: cyto, nuclei]",
         default="nuclei",
@@ -107,8 +120,13 @@ class SegmentationPrimary(luigi.Config):
         description="If segmap should be resampled (slower, more accurate).",
         default=True,
     )
+    gaussian = luigi.FloatParameter(
+        description="Sigma for gaussian filter before thresholding - for method otsu only.",
+        default=3,
+    )
     min_size = luigi.IntParameter(
-        description="Minimum cytoplasm size for cellpose.", default=15
+        description="The smallest allowable object size - to filter out possible debris.",
+        default=5000,
     )
     border_distance = luigi.BoolParameter(
         description="Add a column where the distance of each spot to the perifery is measured.",
@@ -134,6 +152,10 @@ class SegmentationSecondary(luigi.Config):
     gaussian = luigi.FloatParameter(
         description="Sigma for gaussian filter before thresholding.", default=5
     )
+    min_size = luigi.IntParameter(
+        description="The smallest allowable object size - to filter out possible debris.",
+        default=5000,
+    )
     border_distance = luigi.BoolParameter(
         description="Add a column where the distance of each spot to the perifery is measured.",
         default=False,
@@ -151,10 +173,12 @@ class SegmentationOther(luigi.Config):
         description="List of methods [options: deep, otsu, li, multiotsu].", default=[]
     )
     models = luigi.ListParameter(
-        description="List of models. "
-        "Must match the order of the methods above. "
-        "Ignored if method is not deep. "
-        "Set to None if using a mixture.",
+        description=(
+            "List of models. "
+            "Must match the order of the methods above. "
+            "Ignored if method is not deep. "
+            "Set to None if using a mixture."
+        ),
         default=[],
     )
     backbones = luigi.ListParameter(description="List of model backbones.", default=[])
