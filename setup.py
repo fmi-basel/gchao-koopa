@@ -37,6 +37,7 @@ setup(
         "pystackreg",
         "scikit-image",
         "scipy",
+        "segmentation_models",
         "tifffile==2020.09.03",
         "torch",
         "tqdm",
