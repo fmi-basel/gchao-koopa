@@ -49,7 +49,7 @@ def _parse_args():
         "-c",
         "--config",
         type=str,
-        required=True,
+        required=False,
         help="Path to luigi configuration file.",
     )
     parser.add_argument(
