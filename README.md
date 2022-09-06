@@ -51,8 +51,11 @@ Koopa is composed of a few number of luigi tasks that are connected.
 * `SegmentOther` - Segmentation of additional features/channels using `segmentation_models` or mathematical filters.
 * `Merge` - Combination of all tasks above (that have run on single images) into one summary file for downstream analyses.
 
-## Potential TODOs
+## TODOs
 
+* [ ] Create GUI application to modify config file from there?
+* [ ] Use (additional) information in config file to create grouped output?
+* [ ] Create more thorough documentation on key components (rerunning, 0-indexing, etc.)
 * [ ] Add alignment for multiple channels
 * [ ] Add colocalization for 3D case
 * [x] Add some integration tests
