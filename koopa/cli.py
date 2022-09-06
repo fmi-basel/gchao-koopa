@@ -66,6 +66,9 @@ def _parse_args():
         help="Create empty configuration file to be passed to `--config`",
     )
     parser.add_argument(
+        "-s", "--silent", action="store_true", help="Run koopa silently."
+    )
+    parser.add_argument(
         "-h",
         "--help",
         action="help",
@@ -103,14 +106,14 @@ def create_config():
         config.write(f)
 
 
-def set_logging():
+def set_logging(silent: bool = False):
     """Prepare verbose logging for luigi and silence others."""
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
     logging.basicConfig(filename=None, filemode="a", level=logging.ERROR)
 
     file_handler = logging.FileHandler("koopa.log")
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.ERROR if silent else logging.DEBUG)
     formatter = logging.Formatter(
         "%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s", datefmt="%H:%M:%S"
     )
@@ -128,8 +131,6 @@ def set_logging():
 
 def run_pipeline(config_file, threads):
     """Run standard."""
-    set_logging()
-
     luigi.configuration.add_config_path(os.path.abspath(config_file))
     old_config_file = os.path.join(General().analysis_dir, "koopa.cfg")
     if os.path.exists(old_config_file):
@@ -144,6 +145,7 @@ def run_pipeline(config_file, threads):
 def main():
     """Run koopa tasks."""
     args = _parse_args()
+    set_logging(args.silent)
 
     if args.create_config:
         create_config()
