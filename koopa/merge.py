@@ -183,7 +183,7 @@ class Merge(luigi.Task):
 
         # Other segmentation
         if SegmentationOther().enabled:
-            for idx, _ in SegmentationOther().channels:
+            for idx, _ in enumerate(SegmentationOther().channels):
                 other = self.read_image_file(file_id, f"other_{idx}")
                 df[f"other_{idx}"] = df.apply(
                     lambda row: self.get_value(row, other),
