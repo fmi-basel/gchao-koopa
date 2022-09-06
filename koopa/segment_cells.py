@@ -42,6 +42,8 @@ class SegmentPrimary(luigi.Task):
         image = tifffile.imread(self.requires().output().path)
         image_primary = image[SegmentationPrimary().channel]
         segmap = self.segment(image_primary)
+        if SegmentationPrimary().remove_border:
+            segmap = self.remove_border_objects(segmap)
         skimage.io.imsave(self.output().path, segmap, check_contrast=False)
 
     def segment(self, image: np.ndarray) -> np.ndarray:
@@ -57,9 +59,18 @@ class SegmentPrimary(luigi.Task):
         if method == "cellpose":
             return self.segment_cellpose(image)
 
+    def remove_border_objects(self, image: np.ndarray) -> np.ndarray:
+        """Remove objects touching the border of the image."""
+        self.logger.info("Removing border objects.")
+        for idx, prop in enumerate(skimage.measure.regionprops(image)):
+            if bool({0, *image.shape} & {*prop.bbox}):
+                labels = np.where(image == idx, 0, image)
+        return skimage.measure.label(labels)
+
     def segment_otsu(self, image: np.ndarray) -> np.ndarray:
         """Segment a file using mathematical filters into nuclear maps."""
         self.logger.info("Started segmenting nuclei with otsu.")
+        # Intial binary threshold
         image = skimage.filters.gaussian(image, sigma=SegmentationPrimary().gaussian)
         image = image > skimage.filters.threshold_otsu(image)
         image = ndi.binary_fill_holes(image)
@@ -67,6 +78,16 @@ class SegmentPrimary(luigi.Task):
             image, min_size=SegmentationPrimary().min_size
         )
         segmap = skimage.measure.label(image)
+
+        # Separation of merged objects
+        distance = ndi.distance_transform_edt(segmap)
+        coords = skimage.feature.peak_local_max(
+            distance, labels=segmap, min_distance=SegmentationPrimary().min_distance
+        )
+        mask = np.zeros(distance.shape, dtype=bool)
+        mask[tuple(coords.T)] = True
+        markers, _ = ndi.label(mask)
+        segmap = skimage.segmentation.watershed(-distance, markers, mask=segmap)
         return segmap
 
     def segment_cellpose(self, image: np.ndarray) -> np.ndarray:
