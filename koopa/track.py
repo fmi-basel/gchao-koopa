@@ -51,10 +51,13 @@ class Track(luigi.Task):
 
         if General().do_3D:
             self.logger.info(f"Linking 3D image {self.FileID}.")
-            return self.link_brightest_particles(df, track)
+            track = self.link_brightest_particles(df, track)
 
-        self.logger.info(f"Subtracting drift from {self.FileID}.")
-        return self.subtract_drift(track)
+        if SpotsTracking().subtract_drift:
+            self.logger.info(f"Subtracting drift from {self.FileID}.")
+            track = self.subtract_drift(track)
+
+        return track
 
     @staticmethod
     def subtract_drift(track: pd.DataFrame) -> pd.DataFrame:
