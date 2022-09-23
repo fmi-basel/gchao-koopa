@@ -16,7 +16,7 @@ import torch
 
 from .config import FlyBrainCells
 from .config import General
-from preprocess import Preprocess
+from .preprocess import Preprocess
 
 
 class SegmentCellsPredict(luigi.Task):

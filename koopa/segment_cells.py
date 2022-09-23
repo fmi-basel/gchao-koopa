@@ -3,7 +3,6 @@
 import logging
 import os
 
-
 with open(os.devnull, "w") as devnull:
     from cellpose import models
 import luigi
@@ -14,7 +13,6 @@ import skimage.io
 import skimage.morphology
 import skimage.segmentation
 import tifffile
-import torch
 
 from .config import General
 from .config import SegmentationCells
@@ -58,6 +56,12 @@ class SegmentCells(luigi.Task):
         image_nuclei = image[SegmentationCells().channel_nuclei]
         image_cyto = image[SegmentationCells().channel_cyto]
         selection = SegmentationCells().selection
+
+        # TODO add support for cell tracking over time?
+        if not General().do_3D and General().do_TimeSeries:
+            image_nuclei = np.mean(image_nuclei, axis=0).astype(np.uint16)
+            image_cyto = np.mean(image_cyto, axis=0).astype(np.uint16)
+            self.logger.info("Squeezed images along time dimension.")
 
         # Single output
         if selection == "nuclei":
@@ -132,10 +136,6 @@ class SegmentCells(luigi.Task):
         """Segment a file using cellpose into nuclear maps."""
         cellpose_model = models.Cellpose(model_type=model, gpu=self.gpu)
         self.logger.info(f"Loaded cellpose segmentation model {model}.")
-
-        if not General().do_3D and General().do_TimeSeries:
-            image = np.mean(image, axis=0).astype(np.uint16)
-            self.logger.info("Squeezed image along time dimension.")
 
         if General().do_3D:
             image = np.array([(i - np.mean(i)) / np.std(i) for i in image])

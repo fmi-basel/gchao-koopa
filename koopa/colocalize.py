@@ -46,11 +46,16 @@ class ColocalizeFrame(luigi.Task):
         )
 
     def run(self):
+        # Get coordinates - timeseries will never run this so hardcoding frame is safe
         df_one = pd.read_parquet(self.requires()[0].output().path)
         df_two = pd.read_parquet(self.requires()[1].output().path)
+        coords_one = df_one[["y", "x", "frame"]].to_numpy()
+        coords_two = df_two[["y", "x", "frame"]].to_numpy()
+        coords_one[:, 2] *= SpotsColocalization().z_distance
+        coords_two[:, 2] *= SpotsColocalization().z_distance
 
         # Colocalize both channels
-        coloc_one, coloc_two = self.colocalize_frame(df_one, df_two)
+        coloc_one, coloc_two = self.colocalize_frame(coords_one, coords_two)
         df_one["particle"] = df_one.index + 1
         df_two["particle"] = df_two.index + 1
         df_one["coloc_particle"] = 0
@@ -63,20 +68,13 @@ class ColocalizeFrame(luigi.Task):
         track.to_parquet(self.output().path)
 
     @staticmethod
-    def colocalize_frame(frame_one: pd.DataFrame, frame_two: pd.DataFrame):
+    def colocalize_frame(coords_one: np.ndarray, coords_two: np.ndarray):
         """Single frame colocalization.
 
         Euclidean distance based linear sum assigment between coordinates in
             frame_one and frame_two. Removes all assignments above the distance_cutoff.
         """
-        # Euclidean distance matrix
-        cdist = scipy.spatial.distance.cdist(
-            frame_one[["y", "x"]].to_numpy(),
-            frame_two[["y", "x"]].to_numpy(),
-            metric="euclidean",
-        )
-
-        # Linear sum assignment
+        cdist = scipy.spatial.distance.cdist(coords_one, coords_two, metric="euclidean")
         rows, cols = scipy.optimize.linear_sum_assignment(cdist)
 
         # Distance cutoff
@@ -140,7 +138,9 @@ class ColocalizeTrack(ColocalizeFrame):
             frame_two = track_two[track_two["frame"] == frame].reset_index()
 
             # Colocalize single frames below distance_cutoff
-            rows, cols = self.colocalize_frame(frame_one, frame_two)
+            coords_one = frame_one[["y", "x"]].to_numpy()
+            coords_two = frame_two[["y", "x"]].to_numpy()
+            rows, cols = self.colocalize_frame(coords_one, coords_two)
 
             # Assign "real" track-particle number
             real_rows = np.array([frame_one.particle[i] for i in rows])
