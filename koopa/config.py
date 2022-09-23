@@ -50,19 +50,22 @@ class PreprocessingNormalization(luigi.Config):
         ),
         default="max",
     )
-    remove_n_frames = luigi.IntParameter(
-        description=(
-            "Number of frames to remove from top/bottom of stack. "
-            "Only if do_3D is True."
-        ),
+    frame_start = luigi.IntParameter(
+        description="Frame to start analysis. Only if do_3D or do_TimeSeries is True.",
         default=0,
     )
-    frame_start = luigi.IntParameter(
-        description="Frame to start analysis. Only if do_TimeSeries is True.",
-        default=1,
-    )
     frame_end = luigi.IntParameter(
-        description="Frame to end analysis. Only if do_TimeSeries is True.", default=16
+        description="Frame to end analysis. Only if do_3D or do_TimeSeries is True.",
+        default=0,
+    )
+    crop_start = luigi.IntParameter(
+        description="Position to start crop x and y.", default=0
+    )
+    crop_end = luigi.IntParameter(
+        description="Position to end crop x and y.", default=0
+    )
+    bin_axes = luigi.ListParameter(
+        description="Mapping of axes to bin-scale.", default=[]
     )
 
 
@@ -233,3 +236,13 @@ class SegmentationOther(luigi.Config):
     backbones = luigi.ListParameter(
         description="List of segmentation_model backbones.", default=[]
     )
+
+
+class DownstreamAnalysis(luigi.Config):
+    spots_per_cell = luigi.BoolParameter(
+        description="Summarize the number of spots per cell.", default=False
+    )
+    # transcription_sites = luigi.BoolParameter(
+    #     description="Add pseudocounts and boolean presence of transcription sites."
+    # )
+    # translating_mrnas = luigi.BoolParameter(description="")
