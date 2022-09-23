@@ -8,7 +8,6 @@ import deepblink as pink
 import luigi
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 import tifffile
 import trackpy as tp
 
@@ -94,17 +93,6 @@ class Detect(luigi.Task):
 
     def load_deepblink_model(self):
         """Set environment variables and load deepBlink model."""
-        os.environ["OMP_NUM_THREADS"] = "10"
-        os.environ["OPENBLAS_NUM_THREADS"] = "10"
-        os.environ["MKL_NUM_THREADS"] = "10"
-        os.environ["VECLIB_MAXIMUM_THREADS"] = "10"
-        os.environ["NUMEXPR_NUM_THREADS"] = "10"
-
-        os.environ["CUDA_VISIBLE_DEVICES"] = "None"
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-        tf.config.threading.set_intra_op_parallelism_threads(4)
-        tf.config.threading.set_inter_op_parallelism_threads(4)
-
         self.model = pink.io.load_model(SpotsDetection().models[self.ChannelIndex])
         self.logger.info(
             f"Loaded model {SpotsDetection().models[self.ChannelIndex]} "

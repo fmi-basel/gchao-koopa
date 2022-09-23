@@ -134,6 +134,13 @@ class SpotsColocalization(luigi.Config):
         ),
         default=[[]],
     )
+    z_distance = luigi.FloatParameter(
+        description=(
+            "Relative z-distance given x/y-distances are set to 1. "
+            "Only if do_3D is set to True."
+        ),
+        default=1,
+    )
     distance_cutoff = luigi.IntParameter(
         description="Maximum distance for colocalization.", default=5
     )
@@ -254,11 +261,22 @@ class SegmentationOther(luigi.Config):
     )
 
 
-class DownstreamAnalysis(luigi.Config):
-    spots_per_cell = luigi.BoolParameter(
-        description="Summarize the number of spots per cell.", default=False
+class FlyBrainCells(luigi.Config):
+    enabled = luigi.BoolParameter(
+        description="If you're Jess to segment beautiful brains.",
+        default=False,
     )
-    # transcription_sites = luigi.BoolParameter(
-    #     description="Add pseudocounts and boolean presence of transcription sites."
-    # )
-    # translating_mrnas = luigi.BoolParameter(description="")
+    channel = luigi.IntParameter(description="Index for nucleus channel.")
+    batch_size = luigi.IntParameter(
+        description="Cellpose model batch size (default 8 too large).", default=4
+    )
+    min_intensity = luigi.IntParameter(
+        description="Minimum mean pixel intensity of nuclei to not get filtered."
+    )
+    min_area = luigi.IntParameter(
+        description="Minimum area in pixels of nuclei (anything below filtered)."
+    )
+    max_area = luigi.IntParameter(
+        description="Maximum area in pixels of nuclei (anything above filtered)."
+    )
+    dilation = luigi.IntParameter(description="Dilation radius for cell segmentation.")

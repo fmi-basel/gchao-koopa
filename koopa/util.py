@@ -10,6 +10,7 @@ import torch
 
 from .colocalize import ColocalizeFrame
 from .colocalize import ColocalizeTrack
+from .config import FlyBrainCells
 from .config import General
 from .config import PreprocessingAlignment
 from .config import PreprocessingNormalization
@@ -23,6 +24,9 @@ from .merge import Merge
 from .preprocess import Preprocess
 from .registration import ReferenceAlignment
 from .segment_cells import SegmentCells
+from .segment_cells_flies import DilateCells
+from .segment_cells_flies import SegmentCellsMerge
+from .segment_cells_flies import SegmentCellsPredict
 from .segment_other import SegmentOther
 from .track import Track
 
@@ -36,15 +40,19 @@ CONFIGS = [
     SpotsColocalization,
     SegmentationCells,
     SegmentationOther,
+    FlyBrainCells,
 ]
 
 TASKS = [
     ColocalizeFrame,
     ColocalizeTrack,
     Detect,
+    DilateCells,
     Preprocess,
     ReferenceAlignment,
     SegmentCells,
+    SegmentCellsMerge,
+    SegmentCellsPredict,
     SegmentOther,
     Track,
 ]

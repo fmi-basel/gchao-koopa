@@ -9,6 +9,7 @@ import subprocess
 import luigi
 
 from . import __version__
+from .config import FlyBrainCells
 from .config import General
 from .config import SegmentationCells
 from .config import SegmentationOther
@@ -29,11 +30,7 @@ class SetupPipeline(luigi.Task):
         self.create_directories()
         config = configparser.ConfigParser()
         config.read(self.config_file)
-        config["Versioning"] = {
-            "timestamp": self.timestamp,
-            "version": self.version,
-            # "githash": self.git_hash,
-        }
+        config["Versioning"] = {"timestamp": self.timestamp, "version": self.version}
         with open(self.output().path, "w") as configfile:
             config.write(configfile)
 
@@ -43,9 +40,11 @@ class SetupPipeline(luigi.Task):
         dirs = ["preprocessed"]
 
         # Segmentation cells
-        if SegmentationCells().selection in ("nuclei", "cyto"):
+        if FlyBrainCells().enabled:
+            dirs.extend(["segmentation_nuclei_prediction", "segmentation_nuclei_merge"])
+        elif SegmentationCells().selection in ("nuclei", "cyto"):
             dirs.append(f"segmentation_{SegmentationCells().selection}")
-        if SegmentationCells().selection == "both":
+        elif SegmentationCells().selection == "both":
             dirs.extend(["segmentation_nuclei", "segmentation_cyto"])
 
         # Segmentation other

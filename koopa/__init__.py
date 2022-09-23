@@ -11,6 +11,7 @@ from . import merge
 from . import preprocess
 from . import registration
 from . import segment_cells
+from . import segment_cells_flies
 from . import segment_other
 from . import setup
 from . import track

@@ -11,8 +11,10 @@ import scipy.ndimage as ndi
 import skimage.measure
 import tifffile
 
+from . import util
 from .colocalize import ColocalizeFrame
 from .colocalize import ColocalizeTrack
+from .config import FlyBrainCells
 from .config import General
 from .config import SegmentationCells
 from .config import SegmentationOther
@@ -20,9 +22,9 @@ from .config import SpotsColocalization
 from .config import SpotsDetection
 from .detect import Detect
 from .segment_cells import SegmentCells
+from .segment_cells_flies import DilateCells
 from .segment_other import SegmentOther
 from .track import Track
-from . import util
 
 
 class Merge(luigi.Task):
@@ -43,7 +45,10 @@ class Merge(luigi.Task):
             required = {}
 
             # Segmentation Nuclei/Cyto/Both
-            required["cells"] = SegmentCells(FileID=fname)
+            if FlyBrainCells().enabled:
+                required["cells"] = DilateCells(FileID=fname)
+            else:
+                required["cells"] = SegmentCells(FileID=fname)
 
             # Segmentation Other
             if SegmentationOther().enabled:
