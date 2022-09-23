@@ -24,7 +24,7 @@ class Detect(luigi.Task):
 
     FileID = luigi.Parameter()
     ChannelIndex = luigi.IntParameter()
-    logger = logging.getLogger("luigi-interface")
+    logger = logging.getLogger("koopa")
 
     def requires(self):
         return Preprocess(FileID=self.FileID)
@@ -81,7 +81,9 @@ class Detect(luigi.Task):
             raise ValueError(f"Image must be 3D. Got {image.ndim}D.")
 
         frames = []
-        for frame, image_curr in tqdm(enumerate(image), total=image.shape[0]):
+        for frame, image_curr in tqdm(
+            enumerate(image), desc=f"Detecting {self.FileID}", total=image.shape[0]
+        ):
             df = self.detect_frame(image_curr)
             df["frame"] = frame
             df["channel"] = SpotsDetection().channels[self.ChannelIndex]

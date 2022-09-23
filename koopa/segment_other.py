@@ -1,5 +1,6 @@
 """Segment other features."""
 
+import logging
 import os
 
 from tqdm import tqdm
@@ -24,6 +25,7 @@ class SegmentOther(luigi.Task):
 
     FileID = luigi.Parameter()
     ChannelIndex = luigi.IntParameter()
+    logger = logging.getLogger("koopa")
 
     def requires(self):
         return Preprocess(FileID=self.FileID)

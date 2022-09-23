@@ -1,6 +1,7 @@
 """Frame and track colocalization."""
 
 from typing import Tuple
+import logging
 import os
 
 import luigi
@@ -20,6 +21,7 @@ class ColocalizeFrame(luigi.Task):
 
     FileID = luigi.Parameter()
     ChannelPairIndex = luigi.IntParameter()
+    logger = logging.getLogger("koopa")
 
     @property
     def channel_pair(self) -> Tuple[int, int]:
@@ -88,6 +90,8 @@ class ColocalizeFrame(luigi.Task):
 
 class ColocalizeTrack(ColocalizeFrame):
     """Colocalize all frames in a track."""
+
+    logger = logging.getLogger("koopa")
 
     def requires(self):
         channel_detect = SpotsDetection().channels

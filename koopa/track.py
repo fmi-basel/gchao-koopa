@@ -20,7 +20,7 @@ class Track(luigi.Task):
 
     FileID = luigi.Parameter()
     ChannelIndex = luigi.IntParameter()
-    logger = logging.getLogger("luigi-interface")
+    logger = logging.getLogger("koopa")
 
     def requires(self):
         return Detect(FileID=self.FileID, ChannelIndex=self.ChannelIndex)
