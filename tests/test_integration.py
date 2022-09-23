@@ -4,50 +4,77 @@ import subprocess
 
 
 def test_pipeline_2d():
-    shutil.rmtree("./tests/data/test_out_fish/")
+    out_path = "./tests/data/test_out_fish/"
+    columns = "FileID,y,x,mass,size,ecc,signal,frame,channel,cell_id,area_cyto,eccentricity_cyto,area_nuclei,eccentricity_nuclei,num_cells,nuclear"
+    files = [
+        "detection_raw_c0/20220512_EGFP_3h_20.parq",
+        "koopa.cfg",
+        "preprocessed/20220512_EGFP_3h_20.tif",
+        "segmentation_cyto/20220512_EGFP_3h_20.tif",
+        "segmentation_nuclei/20220512_EGFP_3h_20.tif",
+        "summary.csv",
+    ]
+
+    # Run pipeline
+    shutil.rmtree(out_path)
+    os.mkdir(out_path)
     subprocess.run(
         ["koopa", "--config", "./tests/config/fish2d.cfg", "--workers", "24"],
         check=True,
     )
-    for fname in [
-        "summary.csv",
-        "koopa.cfg",
-        "preprocessed/20220512_EGFP_3h_20.tif",
-        "segmentation_primary/20220512_EGFP_3h_20.tif",
-        "segmentation_secondary/20220512_EGFP_3h_20.tif",
-        "detection_raw_c0/20220512_EGFP_3h_20.parq",
-    ]:
-        assert os.path.exists(os.path.join("./tests/data/test_out_fish/", fname))
-    columns = "FileID,y,x,mass,size,ecc,signal,frame,channel,primary,primary_count,distance_from_primary,secondary"
-    with open("./tests/data/test_out_fish/summary.csv", "r") as f:
+
+    # Check output files
+    for fname in files:
+        assert os.path.exists(os.path.join(out_path, fname))
+
+    # Check output format
+    with open(os.path.join(out_path, "summary.csv"), "r") as f:
         first_line = f.readline().strip()
     assert columns == first_line
+
+
+def test_pipeline_2d_coloc():
+    pass
 
 
 def test_pipeline_3d():
     pass
 
 
+def test_pipeline_files():
+    pass
+
+
 def test_pipeline_live():
     """Example pipeline for live cell."""
-    shutil.rmtree("./tests/data/test_out_live/")
+    out_path = "./tests/data/test_out_live"
+    columns = "FileID,y,x,mass,size,ecc,signal,frame,channel,particle,coloc_particle,cell_id,area_cyto,eccentricity_cyto,num_cells"
+    files = [
+        "alignment.npy",
+        "alignment_post.tif",
+        "alignment_pre.tif",
+        "colocalization_0-1/20220518_18xsm_2.parq",
+        "detection_final_c0/20220518_18xsm_2.parq",
+        "detection_raw_c0/20220518_18xsm_2.parq",
+        "koopa.cfg",
+        "preprocessed/20220518_18xsm_2.tif",
+        "segmentation_cyto/20220518_18xsm_2.tif",
+        "summary.csv",
+    ]
+
+    # Run pipeline
+    shutil.rmtree(out_path)
+    os.mkdir(out_path)
     subprocess.run(
         ["koopa", "--config", "./tests/config/live.cfg", "--workers", "24"], check=True
     )
-    for fname in [
-        "summary.csv",
-        "alignment.png",
-        "alignment.npy",
-        "koopa.cfg",
-        "preprocessed/20220518_18xsm_2.tif",
-        "segmentation_primary/20220518_18xsm_2.tif",
-        "detection_raw_c0/20220518_18xsm_2.parq",
-        "colocalization_0-1/20220518_18xsm_2.parq",
-        "detection_final_c0/20220518_18xsm_2.parq",
-    ]:
-        assert os.path.exists(os.path.join("./tests/data/test_out_live/", fname))
-    columns = "FileID,y,x,mass,size,ecc,signal,frame,channel,particle,coloc_particle,primary,primary_count"
-    with open("./tests/data/test_out_live/summary.csv", "r") as f:
+
+    # Check output files
+    for fname in files:
+        assert os.path.exists(os.path.join(out_path, fname))
+
+    # Check output format
+    with open(os.path.join(out_path, "summary.csv"), "r") as f:
         first_line = f.readline().strip()
     assert columns == first_line
 
@@ -57,10 +84,6 @@ def test_pipeline_config():
     subprocess.run(["koopa", "--create-config"], check=True)
     assert os.path.exists("./koopa.cfg")
     os.remove("./koopa.cfg")
-
-
-def test_raw():
-    assert 1
 
 
 def test_pipeline_helptext():

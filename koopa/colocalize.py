@@ -134,8 +134,8 @@ class ColocalizeTrack(ColocalizeFrame):
 
         for frame in track_one["frame"].unique():
             # Slice to get current frame
-            frame_one = track_one[track_one["frame"] == frame].reset_index()
-            frame_two = track_two[track_two["frame"] == frame].reset_index()
+            frame_one = track_one[track_one["frame"] == frame].reset_index(drop=True)
+            frame_two = track_two[track_two["frame"] == frame].reset_index(drop=True)
 
             # Colocalize single frames below distance_cutoff
             coords_one = frame_one[["y", "x"]].to_numpy()
@@ -150,7 +150,7 @@ class ColocalizeTrack(ColocalizeFrame):
             try:
                 assignments[real_rows, real_cols] += 1
             except IndexError:
-                pass
+                self.logger.exception("Could not update assignment matrix.")
 
         # Get colocalizing track numbers from assignment matrix
         coloc_one, coloc_two = np.where(
