@@ -63,16 +63,6 @@ def _parse_args():
         help="Number of parallel luigi workers to spawn. [default: 4]",
     )
     parser.add_argument(
-        "-g",
-        "--gpu",
-        type=int,
-        default=None,
-        help=(
-            "Index of GPU to use for GPU accelerable tasks. "
-            "Will overwrite workers to 1!"
-        ),
-    )
-    parser.add_argument(
         "-cc",
         "--create-config",
         action="store_true",

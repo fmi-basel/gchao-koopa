@@ -15,12 +15,16 @@ from .setup import SetupPipeline
 sys.stdout = sys.__stdout__
 
 
-def setup_configuration(config_file: str, silent: bool):
-    """Replace old configuration file and load parameters into memory."""
+def initialize_setup(config_file: str, silent: bool):
+    """Prepare pipeline to be run."""
+    # Replace old configuration file and load parameters into memory
     luigi.configuration.add_config_path(os.path.abspath(config_file))
     old_config_file = os.path.join(General().analysis_dir, "koopa.cfg")
     if os.path.exists(old_config_file):
         os.remove(old_config_file)
+
+    if General().gpu_index != -1:
+        util.configure_gpu(General().gpu_index)
 
     with util.DisableLogger(silent):
         luigi.build([SetupPipeline(config_file=config_file)], local_scheduler=True)
@@ -40,7 +44,7 @@ def main():
         util.create_config()
         sys.exit(1)
 
-    setup_configuration(args.config, args.silent)
+    initialize_setup(args.config, args.silent)
     tasks = util.create_task_list(args.workers, args.task)
     if args.force:
         util.delete_task_outputs(tasks)

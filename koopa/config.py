@@ -19,6 +19,14 @@ class General(luigi.Config):
         description="Do TimeSeries analysis? Ignored if do_3D is set to True.",
         default=False,
     )
+    gpu_index = luigi.IntParameter(
+        description=(
+            "Index of GPU to use (nvidia-smi). "
+            "If set to -1 no GPU will be used. "
+            "Only accelerates cellpose, deep segmentation, and deepBlink."
+        ),
+        default=-1,
+    )
 
 
 class PreprocessingAlignment(luigi.Config):
@@ -90,19 +98,27 @@ class SpotsTracking(luigi.Config):
     gap_frames = luigi.IntParameter(
         description=(
             "Maximum number of frames to skip in tracks. "
-            "Only if do_TimeSeries is True."
+            "Set to 0 if do_3D is set to True."
         ),
         default=3,
     )
     min_length = luigi.IntParameter(
-        description="Minimum track length. Only if do_TimeSeries is True.", default=5
-    )
-    search_range = luigi.IntParameter(
         description=(
-            "Pixel search range between spots in tracks. "
-            "Only if do_TimeSeries is True."
+            "Minimum track length. "
+            "If do_3D is set to True, shorter tracks will be removed!"
         ),
         default=5,
+    )
+    search_range = luigi.IntParameter(
+        description=("Pixel search range between spots in tracks/stacks."),
+        default=5,
+    )
+    subtract_drift = luigi.BoolParameter(
+        description=(
+            "If ensemble drift xy(t) should be subtracted. "
+            "Only if do_TimeSeries is set to True."
+        ),
+        default=False,
     )
 
 

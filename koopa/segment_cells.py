@@ -26,6 +26,7 @@ class SegmentCells(luigi.Task):
 
     FileID = luigi.Parameter()
     logger = logging.getLogger("koopa")
+    gpu = General().gpu_index != -1
 
     def requires(self):
         return Preprocess(FileID=self.FileID)
@@ -129,8 +130,7 @@ class SegmentCells(luigi.Task):
 
     def segment_cellpose(self, image: np.ndarray, model: str) -> np.ndarray:
         """Segment a file using cellpose into nuclear maps."""
-        torch.set_num_threads(4)
-        cellpose_model = models.Cellpose(model_type=model, gpu=False)
+        cellpose_model = models.Cellpose(model_type=model, gpu=self.gpu)
         self.logger.info(f"Loaded cellpose segmentation model {model}.")
 
         if not General().do_3D and General().do_TimeSeries:

@@ -5,6 +5,8 @@ import logging
 import os
 
 import luigi
+import tensorflow as tf
+import torch
 
 from .colocalize import ColocalizeFrame
 from .colocalize import ColocalizeTrack
@@ -111,9 +113,6 @@ def set_logging():
     file_handler = logging.FileHandler("koopa.log", mode="a")
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.INFO)
-    stream_handler.setFormatter(formatter)
 
     for log_name in [
         "cellpose",
@@ -124,7 +123,13 @@ def set_logging():
     ]:
         logger = logging.getLogger(log_name)
         logger.addHandler(file_handler)
-        logger.addHandler(stream_handler)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    stream_handler.setFormatter(formatter)
+    logger = logging.getLogger("koopa")
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
 
 
 def delete_task_outputs(tasks: List[luigi.task.Task]):
@@ -198,3 +203,25 @@ class DisableLogger:
     def __exit__(self, exit_type, exit_value, exit_traceback):
         if self.silent:
             logging.disable(logging.NOTSET)
+
+
+def configure_gpu(gpu_index: int, memory_limit: int = 8192):
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_index if gpu_index else "None"
+    os.environ["OMP_NUM_THREADS"] = "4"
+    os.environ["OPENBLAS_NUM_THREADS"] = "4"
+    os.environ["MKL_NUM_THREADS"] = "4"
+    os.environ["VECLIB_MAXIMUM_THREADS"] = "4"
+    os.environ["NUMEXPR_NUM_THREADS"] = "4"
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+    # Tensorflow
+    tf.config.threading.set_intra_op_parallelism_threads(4)
+    tf.config.threading.set_inter_op_parallelism_threads(4)
+    gpus = tf.config.list_physical_devices("GPU")
+    if gpus:
+        tf.config.set_logical_device_configuration(
+            gpus[0], [tf.config.LogicalDeviceConfiguration(memory_limit)]
+        )
+
+    # Pytorch
+    torch.set_num_threads(4)
