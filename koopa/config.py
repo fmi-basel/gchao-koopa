@@ -5,7 +5,7 @@ import luigi
 
 class General(luigi.Config):
     image_dir = luigi.Parameter(
-        description="Path to raw input image (nd/stk, czi) files.", default="./"
+        description="Path to raw input image (nd/stk or czi) files.", default="./"
     )
     analysis_dir = luigi.Parameter(
         description="Path where analysis results are saved (created if not given).",
@@ -123,38 +123,69 @@ class SpotsColocalization(luigi.Config):
     )
 
 
-class SegmentationPrimary(luigi.Config):
-    channel = luigi.IntParameter(description="Channel index (0-indexed).", default=0)
-    method = luigi.Parameter(
+class SegmentationCells(luigi.Config):
+    # Basics
+    selection = luigi.Parameter(
         description=(
-            "Method for primary segmentation (otsu only valid for nuclei). "
-            "[options: cellpose, otsu]"
+            "Which option for cellular segmentation should be done. "
+            "[options: nuclei, cyto, both]"
         ),
+        default="both",
+    )
+    method_nuclei = luigi.Parameter(
+        description="Method for nuclear segmentation. [options: cellpose, otsu]",
         default="cellpose",
     )
-    model = luigi.Parameter(
+    method_cyto = luigi.Parameter(
         description=(
-            "Model for segmenation. Only if method is cellpose. "
-            "[options: cyto, nuclei]"
+            "Method for cytoplasmic segmentation. "
+            "Will only be used for the cytoplasmic part of selection `both`. "
+            "[options: otsu, li, triangle]"
         ),
-        default="nuclei",
+        default="otsu",
     )
-    diameter = luigi.IntParameter(
+    channel_nuclei = luigi.IntParameter(
+        description="Channel index (0-indexed).", default=0
+    )
+    channel_cyto = luigi.IntParameter(
+        description="Channel index (0-indexed).", default=0
+    )
+
+    # Cellpose options
+    cellpose_diameter = luigi.IntParameter(
         description="Expected cellular diameter. Only if method is cellpose.",
         default=150,
     )
-    resample = luigi.BoolParameter(
+    cellpose_resample = luigi.BoolParameter(
         description=(
             "If segmap should be resampled (slower, more accurate). "
             "Only if method is cellpose."
         ),
         default=True,
     )
+
+    # Mathematical options
     gaussian = luigi.FloatParameter(
-        description="Sigma for gaussian filter before thresholding. Only if method is otsu.",
+        description=(
+            "Sigma for gaussian filter before thresholding. "
+            "Only if method nuclei is otsu."
+        ),
         default=3,
     )
-    min_size = luigi.IntParameter(
+    upper_clip = luigi.FloatParameter(
+        description="Upper clip limit before thresholding to remove effect of outliers.",
+        default=0.95,
+    )
+
+    # Subsequent options
+    min_size_nuclei = luigi.IntParameter(
+        description=(
+            "Minimum object size - to filter out possible debris. "
+            "Only if method is otsu."
+        ),
+        default=5000,
+    )
+    min_size_cyto = luigi.IntParameter(
         description=(
             "Minimum object size - to filter out possible debris. "
             "Only if method is otsu."
@@ -171,35 +202,6 @@ class SegmentationPrimary(luigi.Config):
     remove_border = luigi.BoolParameter(
         description="Should segmentation maps touching the border be removed?",
         default=True,
-    )
-    border_distance = luigi.BoolParameter(
-        description="Add a column where the distance of each spot to the perifery is measured.",
-        default=False,
-    )
-
-
-class SegmentationSecondary(luigi.Config):
-    enabled = luigi.BoolParameter(
-        description="Enable secondary segmentation?", default=False
-    )
-    channel = luigi.IntParameter(description="Channel index.", default=0)
-    method = luigi.Parameter(
-        description="Method for secondary segmentation [options: otsu, li, median, triangle].",
-        default="otsu",
-    )
-    value = luigi.FloatParameter(
-        description="Value for secondary segmentation. Only if method is median.",
-        default=0.5,
-    )
-    upper_clip = luigi.FloatParameter(
-        description="Upper percentile for clipping image.", default=0.95
-    )
-    gaussian = luigi.FloatParameter(
-        description="Sigma for gaussian filter before thresholding.", default=5
-    )
-    min_size = luigi.IntParameter(
-        description="Minimum object size - to filter out possible debris. ",
-        default=5000,
     )
     border_distance = luigi.BoolParameter(
         description="Add a column where the distance of each spot to the perifery is measured.",

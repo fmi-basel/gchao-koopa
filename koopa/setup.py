@@ -2,6 +2,7 @@
 
 import configparser
 import datetime
+import logging
 import os
 import subprocess
 
@@ -9,8 +10,8 @@ import luigi
 
 from . import __version__
 from .config import General
+from .config import SegmentationCells
 from .config import SegmentationOther
-from .config import SegmentationSecondary
 from .config import SpotsColocalization
 from .config import SpotsDetection
 
@@ -19,6 +20,7 @@ class SetupPipeline(luigi.Task):
     """Version analysis workflow to ensure reproducible results."""
 
     config_file = luigi.Parameter(default="./koopa.cfg")
+    logger = logging.getLogger("koopa")
 
     def output(self):
         return luigi.LocalTarget(os.path.join(General().analysis_dir, "koopa.cfg"))
@@ -38,11 +40,15 @@ class SetupPipeline(luigi.Task):
     @staticmethod
     def create_directories():
         """Create all analysis directories for a given path."""
-        dirs = ["preprocessed", "segmentation_primary"]
+        dirs = ["preprocessed"]
 
-        # Segmentation
-        if SegmentationSecondary().enabled:
-            dirs.append("segmentation_secondary")
+        # Segmentation cells
+        if SegmentationCells().selection in ("nuclei", "cyto"):
+            dirs.append(f"segmentation_{SegmentationCells().selection}")
+        if SegmentationCells().selection == "both":
+            dirs.extend(["segmentation_nuclei", "segmentation_cyto"])
+
+        # Segmentation other
         if SegmentationOther().enabled:
             segmentation_channels = SegmentationOther().channels
             dirs.extend([f"segmentation_c{i}" for i in segmentation_channels])

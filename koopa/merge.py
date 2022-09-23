@@ -1,6 +1,5 @@
 """Merge all tasks to summary."""
 
-import glob
 import logging
 import multiprocessing
 import os
@@ -9,61 +8,42 @@ import luigi
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndi
+import skimage.measure
 import tifffile
 
 from .colocalize import ColocalizeFrame
 from .colocalize import ColocalizeTrack
 from .config import General
-from .config import SegmentationPrimary
+from .config import SegmentationCells
 from .config import SegmentationOther
-from .config import SegmentationSecondary
 from .config import SpotsColocalization
 from .config import SpotsDetection
 from .detect import Detect
-from .segment_cells import SegmentPrimary
-from .segment_cells import SegmentSecondary
+from .segment_cells import SegmentCells
 from .segment_other import SegmentOther
 from .track import Track
+from . import util
 
 
 class Merge(luigi.Task):
     """Task to merge workflow tasks into a summary and initiate paralellization."""
 
-    logger = logging.getLogger("luigi-interface")
     threads = luigi.IntParameter()
+    logger = logging.getLogger("koopa")
 
     @property
     def file_list(self):
         """All file basenames in the image directory."""
-        files = sorted(
-            glob.glob(
-                os.path.join(General().image_dir, "**", f"*.{General().file_ext}"),
-                recursive=True,
-            )
-        )
-        files = [
-            os.path.basename(f).replace(f".{General().file_ext}", "") for f in files
-        ]
-        if len(files) != len(set(files)):
-            raise ValueError("Found duplicate file names in image directory.")
-        if not len(files):
-            raise ValueError(
-                f"No files found in directory `{General().image_dir}` "
-                f"with extension `{General().file_ext}`!"
-            )
-        return files
+        return util.get_file_list()
 
     def requires(self):
         required_inputs = {}
-        self.logger.debug(f"Using files - {self.file_list}")
 
         for fname in self.file_list:
             required = {}
 
-            # Segmentation Primary/Secondary
-            required["primary"] = SegmentPrimary(FileID=fname)
-            if SegmentationSecondary().enabled:
-                required["secondary"] = SegmentSecondary(FileID=fname)
+            # Segmentation Nuclei/Cyto/Both
+            required["cells"] = SegmentCells(FileID=fname)
 
             # Segmentation Other
             if SegmentationOther().enabled:
@@ -89,7 +69,6 @@ class Merge(luigi.Task):
 
             required_inputs[fname] = required
 
-        self.logger.debug(f"Required inputs - {required_inputs}")
         return required_inputs
 
     def output(self):
@@ -123,10 +102,6 @@ class Merge(luigi.Task):
             ]
         return pd.concat(dfs, ignore_index=True)
 
-    def read_image_file(self, file_id: str, name: str) -> np.ndarray:
-        """Read image file called `name` of file `file_id`."""
-        return tifffile.imread(self.requires()[file_id][name].output().path)
-
     def get_value(self, row: pd.Series, image: np.ndarray) -> int:
         """Get pixel intensity from coordinate value."""
         if image.ndim == 3:
@@ -142,8 +117,9 @@ class Merge(luigi.Task):
             ]
         raise ValueError(f"Segmentation image must be 2D or 3D. Got {image.ndim}D.")
 
+    @staticmethod
     def get_distance_from_segmap(
-        self, df: pd.DataFrame, segmap: np.ndarray, identifier: str
+        df: pd.DataFrame, segmap: np.ndarray, identifier: str
     ) -> list:
         """Measure the distance of the spot to the periphery of a segmap."""
         distances = []
@@ -156,38 +132,49 @@ class Merge(luigi.Task):
             distances.extend(np.min(rmsd, axis=1))
         return distances
 
+    def get_cell_properties(self, segmap: np.ndarray, name: str) -> pd.DataFrame:
+        """Find common measurements using regionprops."""
+        properties = ("label", "area", "eccentricity")
+        props = skimage.measure.regionprops_table(segmap, properties=properties)
+        df = pd.DataFrame(props)
+        df.columns = ["cell_id", *(f"{prop}_{name}" for prop in properties[1:])]
+        return df
+
     def merge_file(self, file_id: str):
         """Merge all components of a single file `file_id`."""
+        self.logger.info(f"Processing file - {file_id}")
         df = self.read_spots_file(file_id)
 
-        # Primary segmentation
-        primary = self.read_image_file(file_id, "primary")
-        df["primary"] = df.apply(lambda row: self.get_value(row, primary), axis=1)
-        df["primary_count"] = len(np.unique(primary)) - 1
-        if SegmentationPrimary().border_distance:
-            df["distance_from_primary"] = self.get_distance_from_segmap(
-                df, primary, "primary"
+        # Cellular segmentation
+        for selection in ("cyto", "nuclei"):
+            if SegmentationCells().selection in (selection, "both"):
+                image = tifffile.imread(
+                    self.requires()[file_id]["cells"].output()[selection].path
+                )
+                df_cell = self.get_cell_properties(image, selection)
+                df["cell_id"] = df.apply(lambda row: self.get_value(row, image), axis=1)
+                df = pd.merge(df, df_cell, on="cell_id")
+        df["num_cells"] = len(np.unique(image)) - 1
+
+        if SegmentationCells().selection == "both":
+            df["nuclear"] = df.apply(
+                lambda row: bool(self.get_value(row, image)), axis=1
             )
 
-        # Secondary segmentation
-        if SegmentationSecondary().enabled:
-            secondary = self.read_image_file(file_id, "secondary")
-            df["secondary"] = df.apply(
-                lambda row: self.get_value(row, secondary),
-                axis=1,
-            )
-            if SegmentationSecondary().border_distance:
-                df["distance_from_secondary"] = self.get_distance_from_segmap(
-                    df, secondary, "secondary"
-                )
+        # Border distance
+        # if SegmentationSecondary().border_distance:
+        #     df["distance_from_secondary"] = self.get_distance_from_segmap(
+        #         df, secondary, "secondary"
+        #     )
 
         # Other segmentation
         if SegmentationOther().enabled:
             for idx, _ in enumerate(SegmentationOther().channels):
-                other = self.read_image_file(file_id, f"other_{idx}")
+                other = tifffile.imread(
+                    self.requires()[file_id][f"other_{idx}"].output().path
+                )
                 df[f"other_{idx}"] = df.apply(
-                    lambda row: self.get_value(row, other),
-                    axis=1,
+                    lambda row: self.get_value(row, other), axis=1
                 ).astype(bool)
 
         return df
