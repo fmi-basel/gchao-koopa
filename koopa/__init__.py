@@ -1,6 +1,6 @@
 """Koopa."""
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 from . import argparse
 from . import cli

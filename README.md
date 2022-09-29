@@ -53,15 +53,14 @@ Koopa is composed of a few number of luigi tasks that are connected.
 
 ## TODOs
 
-* [ ] Create GUI application to modify config file from there?
-* [ ] Use (additional) information in config file to create grouped output?
 * [ ] Create more thorough documentation on key components (rerunning, 0-indexing, etc.)
 * [ ] Add alignment for multiple channels
-* [ ] Add colocalization for 3D case
+* [x] Add colocalization for 3D case
 * [x] Add some integration tests
   * [ ] FISH 3D - with proper data once available
   * [x] FISH 2D - subset of specles
   * [x] Live cell - subset of smonster
+  * [x] Flies 3D
 * [x] Add functional overview
 * [x] Add option to measure distance of spot from nuclear envelope
 * [x] Check cfg file and overwrite on changes?
