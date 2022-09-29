@@ -60,16 +60,16 @@ class Track(luigi.Task):
         return self.clean_particles(track)
 
     @staticmethod
-    def subtract_drift(track: pd.DataFrame) -> pd.DataFrame:
-        drift = tp.compute_drift(track)
-        df_clean = tp.subtract_drift(track.copy(), drift)
+    def subtract_drift(df: pd.DataFrame) -> pd.DataFrame:
+        drift = tp.compute_drift(df)
+        df_clean = tp.subtract_drift(df.copy(), drift)
         return df_clean
 
     @staticmethod
-    def clean_particles(track: pd.DataFrame) -> pd.DataFrame:
-        track["particle"] = pd.factorize(track["particle"])[0]
-        track = track.reset_index(drop=True)
-        return track
+    def clean_particles(df: pd.DataFrame) -> pd.DataFrame:
+        df["particle"] = pd.factorize(df["particle"])[0]
+        df = df.reset_index(drop=True)
+        return df
 
     @staticmethod
     def link_brightest_particles(df: pd.DataFrame, track: pd.DataFrame) -> pd.DataFrame:

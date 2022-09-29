@@ -191,7 +191,7 @@ def create_task_list(threads: int, task_name: str = None) -> List[luigi.task.Tas
         elif task_name in ("ColocalizeTrack", "ColocalizeFrame"):
             tasks.extend(
                 [
-                    single_task(FileID=fname, ChannelIndex=idx)
+                    single_task(FileID=fname, ChannelPairIndex=idx)
                     for idx, _ in enumerate(SpotsColocalization().channels)
                 ]
             )

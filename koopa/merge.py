@@ -139,7 +139,9 @@ class Merge(luigi.Task):
 
     def get_cell_properties(self, segmap: np.ndarray, name: str) -> pd.DataFrame:
         """Find common measurements using regionprops."""
-        properties = ("label", "area", "eccentricity")
+        properties = ["label", "area"]
+        if not General().do_3D:
+            properties.append("eccentricity")
         props = skimage.measure.regionprops_table(segmap, properties=properties)
         df = pd.DataFrame(props)
         df.columns = ["cell_id", *(f"{prop}_{name}" for prop in properties[1:])]

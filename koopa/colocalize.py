@@ -31,9 +31,14 @@ class ColocalizeFrame(luigi.Task):
         channel_detect = SpotsDetection().channels
         index_one = channel_detect.index(self.channel_pair[0])
         index_two = channel_detect.index(self.channel_pair[1])
+        if General().do_TimeSeries:
+            return [
+                Detect(FileID=self.FileID, ChannelIndex=index_one),
+                Detect(FileID=self.FileID, ChannelIndex=index_two),
+            ]
         return [
-            Detect(FileID=self.FileID, ChannelIndex=index_one),
-            Detect(FileID=self.FileID, ChannelIndex=index_two),
+            Track(FileID=self.FileID, ChannelIndex=index_one),
+            Track(FileID=self.FileID, ChannelIndex=index_two),
         ]
 
     def output(self):
@@ -60,8 +65,8 @@ class ColocalizeFrame(luigi.Task):
         df_two["particle"] = df_two.index + 1
         df_one["coloc_particle"] = 0
         df_two["coloc_particle"] = 0
-        df_one.loc[coloc_one, "coloc_particle"] = coloc_two
-        df_two.loc[coloc_two, "coloc_particle"] = coloc_one
+        df_one.loc[coloc_one, "coloc_particle"] = coloc_two + 1
+        df_two.loc[coloc_two, "coloc_particle"] = coloc_one + 1
 
         # Merge
         track = pd.concat([df_one, df_two])
