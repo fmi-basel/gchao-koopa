@@ -60,6 +60,7 @@ class ColocalizeFrame(luigi.Task):
         coords_two[:, 2] *= SpotsColocalization().z_distance
 
         # Colocalize both channels
+        # TODO rename to be unique between coloc indices
         coloc_one, coloc_two = self.colocalize_frame(coords_one, coords_two)
         df_one["particle"] = df_one.index + 1
         df_two["particle"] = df_two.index + 1

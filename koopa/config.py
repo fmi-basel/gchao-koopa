@@ -266,17 +266,22 @@ class FlyBrainCells(luigi.Config):
         description="If you're Jess to segment beautiful brains.",
         default=False,
     )
-    channel = luigi.IntParameter(description="Index for nucleus channel.")
+    channel = luigi.IntParameter(description="Index for nucleus channel.", default=0)
     batch_size = luigi.IntParameter(
         description="Cellpose model batch size (default 8 too large).", default=4
     )
     min_intensity = luigi.IntParameter(
-        description="Minimum mean pixel intensity of nuclei to not get filtered."
+        description="Minimum mean pixel intensity of nuclei to not get filtered.",
+        default=0,
     )
     min_area = luigi.IntParameter(
-        description="Minimum area in pixels of nuclei (anything below filtered)."
+        description="Minimum area in pixels of nuclei (anything below filtered).",
+        default=0,
     )
     max_area = luigi.IntParameter(
-        description="Maximum area in pixels of nuclei (anything above filtered)."
+        description="Maximum area in pixels of nuclei (anything above filtered).",
+        default=0,
     )
-    dilation = luigi.IntParameter(description="Dilation radius for cell segmentation.")
+    dilation = luigi.IntParameter(
+        description="Dilation radius for cell segmentation.", default=0
+    )
