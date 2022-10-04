@@ -89,7 +89,6 @@ class Merge(luigi.Task):
     def read_spots_file(self, file_id: str) -> pd.DataFrame:
         """Read the last important spot files dependent on selected config."""
         if SpotsColocalization().enabled:
-            # TODO update to multiple possible colocs
             dfs = [
                 pd.read_parquet(
                     self.requires()[file_id][f"colocalize_{idx}"].output().path

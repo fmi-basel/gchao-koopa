@@ -42,10 +42,11 @@ class ColocalizeFrame(luigi.Task):
         ]
 
     def output(self):
+        self.channel_pair_name = f"{self.channel_pair[0]}-{self.channel_pair[1]}"
         return luigi.LocalTarget(
             os.path.join(
                 General().analysis_dir,
-                f"colocalization_{self.channel_pair[0]}-{self.channel_pair[1]}",
+                f"colocalization_{self.channel_pair_name}",
                 f"{self.FileID}.parq",
             )
         )
@@ -60,14 +61,17 @@ class ColocalizeFrame(luigi.Task):
         coords_two[:, 2] *= SpotsColocalization().z_distance
 
         # Colocalize both channels
-        # TODO rename to be unique between coloc indices
         coloc_one, coloc_two = self.colocalize_frame(coords_one, coords_two)
-        df_one["particle"] = df_one.index + 1
-        df_two["particle"] = df_two.index + 1
-        df_one["coloc_particle"] = 0
-        df_two["coloc_particle"] = 0
-        df_one.loc[coloc_one, "coloc_particle"] = coloc_two + 1
-        df_two.loc[coloc_two, "coloc_particle"] = coloc_one + 1
+        df_one[f"particle_{self.channel_pair_name}"] = df_one.index + 1
+        df_two[f"particle_{self.channel_pair_name}"] = df_two.index + 1
+        df_one[f"coloc_particle_{self.channel_pair_name}"] = 0
+        df_two[f"coloc_particle_{self.channel_pair_name}"] = 0
+        df_one.loc[coloc_one, f"coloc_particle_{self.channel_pair_name}"] = (
+            coloc_two + 1
+        )
+        df_two.loc[coloc_two, f"coloc_particle_{self.channel_pair_name}"] = (
+            coloc_one + 1
+        )
 
         # Merge
         track = pd.concat([df_one, df_two])
