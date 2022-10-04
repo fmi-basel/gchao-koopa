@@ -1,67 +1,21 @@
 # Koopa
 
-Keenly optimized obliging picture analysis - Koopa is a luigi-pipeline based workflow to analyze cellular microscopy data of varying types - specializing on single particle analyses. The key features include:
+<img src="./logo.png" width="300px" align="right" alt="Logo of koopa.">
 
-* Preprocessing
-  * For chromatic and camera alignment
-  * Z-projection
-  * Frame selection
-* Spot methods
-  * 2D/3D detection using `deepBlink` models
-  * Tracking along time
-  * Colocalization between channels
-* Segmentation
-  * Cellular segmentation (nuclei / cytoplasm) using `cellpose` models
-  * Secondary segmentation (cytoplasm / nuclei) using mathematical filters
-  * Other segmentation using mathematical filters or `segmentation_models` models
+Keenly optimized obliging picture analysis - Koopa is a luigi-pipeline based workflow to analyze cellular microscopy data of varying types. Koopa is specialized on single particle analyses.
 
-## Installation
+## Documentation
 
-Koopa can be installed using python's packaging index pypi - and has been tested for python versions 3.7-3.9.
-
-```bash
-pip install koopa
-```
-
-## Usage
-
-Once installed, koopa can be accessed as a simple command line interface using two key commands:
-
-```bash
-# To create the config file which will have to be edited
-koopa --create-config
-
-# To run the actual workflow
-koopa --config <path-to-config-file> --workers <number-of-workers>
-```
-
-## Functional Overview
-
-Koopa is composed of a few number of luigi tasks that are connected.
-
-* `SetupPipeline` - Initialized all folders and copies the configuration file.
-* `ReferenceAlignment` - Creates a transformation matrix from the bead images.
-* `Preprocess` - Opens, trims, aligns images depending on selection and saves them as tif.
-* `Detect` - Raw spot detection on a single image/movie.
-* `Track` - Linking of separated spots along time.
-* `ColocalizeFrame` - Colocalize a pair of channels in a single time frame using linear sum assignment.
-* `ColocalizeTrack` - Colocalize track pairs across a movie.
-* `SegmentPrimary` - Segmentation of the main channel using cellpose (either on nuclei or cytoplasm).
-* `SegmentSecondary` - Segmentation of the other channel (cytoplasm or nucleus respectively) using matematical filters.
-* `SegmentOther` - Segmentation of additional features/channels using `segmentation_models` or mathematical filters.
-* `Merge` - Combination of all tasks above (that have run on single images) into one summary file for downstream analyses.
+[Link to google doc](https://docs.google.com/document/d/1kG5cSCOSq7G8-0FeRhn2wSetVkI2d8sgFogwSKiE03Y/edit?usp=sharing).
 
 ## TODOs
 
-* [ ] Create more thorough documentation on key components (rerunning, 0-indexing, etc.)
 * [ ] Add alignment for multiple channels
-* [x] Add colocalization for 3D case
+* [ ] Add option for custom cellpose model
+* [ ] Add nicer config file support (multi-line break)
+* [x] Create more thorough documentation on key components (rerunning, 0-indexing, etc.)
 * [x] Add some integration tests
   * [ ] FISH 3D - with proper data once available
   * [x] FISH 2D - subset of specles
   * [x] Live cell - subset of smonster
   * [x] Flies 3D
-* [x] Add functional overview
-* [x] Add option to measure distance of spot from nuclear envelope
-* [x] Check cfg file and overwrite on changes?
-* [x] Create folders while using - not at the beginning
