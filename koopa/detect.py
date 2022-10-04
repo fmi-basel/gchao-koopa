@@ -46,15 +46,14 @@ class Detect(luigi.Task):
         df_spots.insert(loc=0, column="FileID", value=self.FileID)
         df_spots.to_parquet(self.output().path)
 
-    def detect_frame(self, image: np.ndarray) -> pd.DataFrame:
+    def detect_frame(
+        self,
+        image: np.ndarray,
+        refinement_radius: int = SpotsDetection().refinement_radius,
+    ) -> pd.DataFrame:
         """Detect spots in a single frame using deepBlink."""
         # Padding to allow for refinement at edges
-        image = np.pad(
-            image,
-            SpotsDetection().refinement_radius + 1,
-            mode="constant",
-            constant_values=0,
-        )
+        image = np.pad(image, refinement_radius + 1, mode="constant", constant_values=0)
 
         # Prediction and refinement
         yx = pink.inference.predict(image=image, model=self.model)
@@ -62,16 +61,17 @@ class Detect(luigi.Task):
         df = tp.refine_com(
             raw_image=image,
             image=image,
-            radius=SpotsDetection().refinement_radius,
+            radius=refinement_radius,
             coords=yx,
             engine="numba",
         )
-        df["x"] = x - SpotsDetection().refinement_radius - 1
-        df["y"] = y - SpotsDetection().refinement_radius - 1
+        df["x"] = x - refinement_radius - 1
+        df["y"] = y - refinement_radius - 1
+        df = df.rename({"ecc": "eccentricity"}, axis=1)
         df = df.drop("raw_mass", axis=1)
         return df
 
-    def detect(self, image: np.ndarray) -> pd.DataFrame:
+    def detect(self, image: np.ndarray, channels: list = SpotsDetection().channels) -> pd.DataFrame:
         """Detect spots in an image series (single, z, or t)."""
         if image.ndim == 2:
             self.logger.info("Detecting spots in single frame")
@@ -85,7 +85,7 @@ class Detect(luigi.Task):
         ):
             df = self.detect_frame(image_curr)
             df["frame"] = frame
-            df["channel"] = SpotsDetection().channels[self.ChannelIndex]
+            df["channel"] = channels[self.ChannelIndex]
             frames.append(df)
 
         df = pd.concat(frames, ignore_index=True)
