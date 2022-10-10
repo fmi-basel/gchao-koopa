@@ -1,95 +1,74 @@
-"""Prepare pipeline."""
+"""Setup file for pypi package called koopa."""
 
-import configparser
-import datetime
-import logging
-import os
-import subprocess
+# python setup.py sdist
+# twine upload dist/latest-version.tar.gz
 
-import luigi
+import textwrap
+from setuptools import find_packages
+from setuptools import setup
 
-from . import __version__
-from .config import FlyBrainCells
-from .config import General
-from .config import SegmentationCells
-from .config import SegmentationOther
-from .config import SpotsColocalization
-from .config import SpotsDetection
-
-
-class SetupPipeline(luigi.Task):
-    """Version analysis workflow to ensure reproducible results."""
-
-    config_file = luigi.Parameter(default="./koopa.cfg")
-    logger = logging.getLogger("koopa")
-
-    def output(self):
-        return luigi.LocalTarget(os.path.join(General().analysis_dir, "koopa.cfg"))
-
-    def run(self):
-        self.create_directories()
-        config = configparser.ConfigParser()
-        config.read(self.config_file)
-        config["Versioning"] = {"timestamp": self.timestamp, "version": self.version}
-        with open(self.output().path, "w") as configfile:
-            config.write(configfile)
-
-    @staticmethod
-    def create_directories():
-        """Create all analysis directories for a given path."""
-        dirs = ["preprocessed"]
-
-        # Segmentation cells
-        if FlyBrainCells().enabled:
-            dirs.extend(["segmentation_nuclei_prediction", "segmentation_nuclei_merge"])
-        elif SegmentationCells().selection in ("nuclei", "cyto"):
-            dirs.append(f"segmentation_{SegmentationCells().selection}")
-        elif SegmentationCells().selection == "both":
-            dirs.extend(["segmentation_nuclei", "segmentation_cyto"])
-
-        # Segmentation other
-        if SegmentationOther().enabled:
-            segmentation_channels = SegmentationOther().channels
-            dirs.extend([f"segmentation_c{i}" for i in segmentation_channels])
-
-        # Spot detection
-        spot_channels = SpotsDetection().channels
-        dirs.extend([f"detection_raw_c{i}" for i in spot_channels])
-        if General().do_3D or General().do_TimeSeries:
-            dirs.extend([f"detection_final_c{i}" for i in spot_channels])
-
-        # Colocalization
-        if SpotsColocalization().enabled:
-            for channel_pair in SpotsColocalization().channels:
-                for c in channel_pair:
-                    if c not in SpotsDetection().channels:
-                        raise ValueError(
-                            f'Colocalization channel "{c}" '
-                            "not listed in detection channels."
-                        )
-            dirs.extend(
-                [f"colocalization_{i}-{j}" for i, j in SpotsColocalization().channels]
-            )
-
-        for folder in dirs:
-            path = os.path.join(General().analysis_dir, folder)
-            os.makedirs(path, exist_ok=True)
-
-    @property
-    def git_hash(self):
-        """Find current githash as version proxy."""
-        return (
-            subprocess.check_output(["git", "rev-parse", "HEAD"])
-            .decode("ascii")
-            .strip()
-        )
-
-    @property
-    def version(self):
-        """Koopa version number."""
-        return __version__
-
-    @property
-    def timestamp(self):
-        """Current unix timestamp."""
-        return str(datetime.datetime.now().timestamp())
+setup(
+    # Description
+    name="koopa",
+    version="0.0.3",
+    license="MIT",
+    description="Workflow for analysis of cellular microscopy data.",
+    long_description_content_type="text/plain",
+    long_description=textwrap.dedent(
+        """
+    Keenly optimized obliging picture analysis.
+    Koopa is a luigi-pipeline based workflow to analyze cellular microscopy data of varying types -
+    specializing on single particle analyses.
+    """
+    ),
+    # Installation
+    python_requires=">=3.7",
+    packages=find_packages(),
+    include_package_data=True,
+    zip_safe=False,
+    install_requires=[
+        "cellpose",
+        "czifile",
+        "deepblink",
+        "luigi",
+        "matplotlib",
+        "numpy",
+        "pandas",
+        "pyarrow",
+        "pystackreg",
+        "scikit-image",
+        "scipy",
+        "segmentation_models",
+        "tifffile==2020.09.03",
+        "torch",
+        "tqdm",
+        "trackpy",
+    ],
+    entry_points={"console_scripts": ["koopa = koopa.cli:main"]},
+    # Metadata
+    author="Bastian Eichenberger",
+    author_email="bastian@eichenbergers.ch",
+    url="https://github.com/bbquercus/koopa/",
+    project_urls={
+        "Documentation": "https://github.com/BBQuercus/koopa/wiki",
+        "Changelog": "https://github.com/BBQuercus/koopa/releases",
+        "Issue Tracker": "https://github.com/bbquercus/koopa/issues",
+    },
+    keywords=["biomedical", "bioinformatics", "image analysis"],
+    classifiers=[
+        # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
+        "Development Status :: 3 - Alpha",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX",
+        "Operating System :: Unix",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python",
+        "Topic :: Scientific/Engineering :: Bio-Informatics",
+        "Topic :: Utilities",
+    ],
+)

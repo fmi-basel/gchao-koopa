@@ -134,3 +134,4 @@ log_luigi/
 *.csv
 *.pdf
 tests/data/
+.DS_Store

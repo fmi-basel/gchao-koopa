@@ -1,11 +1,12 @@
-import os
+import sys
 
 import deepblink as pink
 import numpy as np
 import pytest
 import skimage.io
 
-from koopa.detect import Detect
+sys.path.append("../")
+from src.detect import Detect
 
 
 @pytest.fixture
