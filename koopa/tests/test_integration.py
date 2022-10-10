@@ -5,7 +5,7 @@ import subprocess
 
 def test_pipeline_2d():
     """Example pipeline basic 2D cellular data."""
-    out_path = "./tests/data/test_out_fish/"
+    out_path = "./koopa/tests/data/test_out_fish/"
     columns = "FileID,y,x,mass,size,eccentricity,signal,frame,channel,cell_id,area_cyto,eccentricity_cyto,area_nuclei,eccentricity_nuclei,num_cells,nuclear"
     files = [
         "detection_raw_c0/20220512_EGFP_3h_20.parq",
@@ -20,7 +20,7 @@ def test_pipeline_2d():
     shutil.rmtree(out_path)
     os.mkdir(out_path)
     subprocess.run(
-        ["koopa", "--config", "./tests/config/fish2d.cfg", "--workers", "24"],
+        ["koopa", "--config", "./koopa/tests/config/fish2d.cfg", "--workers", "24"],
         check=True,
     )
 
@@ -36,7 +36,7 @@ def test_pipeline_2d():
 
 def test_pipeline_files():
     """Example pipeline for Jess's flies."""
-    out_path = "./tests/data/test_out_flies"
+    out_path = "./koopa/tests/data/test_out_flies"
     columns = "FileID,y,x,mass,size,eccentricity,signal,frame,channel,particle,coloc_particle,cell_id,area_cyto,num_cells"
     files = [
         "colocalization_0-1/hr38-24xPP7_hr38633_PP7546_OCT_9.parq",
@@ -52,7 +52,8 @@ def test_pipeline_files():
     shutil.rmtree(out_path)
     os.mkdir(out_path)
     subprocess.run(
-        ["koopa", "--config", "./tests/config/flies.cfg", "--workers", "2"], check=True
+        ["koopa", "--config", "./koopa/tests/config/flies.cfg", "--workers", "2"],
+        check=True,
     )
 
     # Check output files
@@ -67,7 +68,7 @@ def test_pipeline_files():
 
 def test_pipeline_live():
     """Example pipeline for live cell."""
-    out_path = "./tests/data/test_out_live"
+    out_path = "./koopa/tests/data/test_out_live"
     columns = "FileID,y,x,mass,size,eccentricity,signal,frame,channel,particle,coloc_particle,cell_id,area_cyto,eccentricity_cyto,num_cells"
     files = [
         "alignment.npy",
@@ -86,7 +87,8 @@ def test_pipeline_live():
     shutil.rmtree(out_path)
     os.mkdir(out_path)
     subprocess.run(
-        ["koopa", "--config", "./tests/config/live.cfg", "--workers", "24"], check=True
+        ["koopa", "--config", "./koopa/tests/config/live.cfg", "--workers", "24"],
+        check=True,
     )
 
     # Check output files

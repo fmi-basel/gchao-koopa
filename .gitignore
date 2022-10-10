@@ -133,5 +133,5 @@ log_luigi/
 .vscode/
 *.csv
 *.pdf
-tests/data/
+data/
 .DS_Store

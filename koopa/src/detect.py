@@ -42,7 +42,7 @@ class Detect(luigi.Task):
         image = tifffile.imread(self.requires().output().path)
         image_spots = image[SpotsDetection().channels[self.ChannelIndex]]
 
-        df_spots = self.detect(image_spots)
+        df_spots = self.detect(image_spots, channels=SpotsDetection().channels)
         df_spots.insert(loc=0, column="FileID", value=self.FileID)
         df_spots.to_parquet(self.output().path)
 
@@ -71,7 +71,7 @@ class Detect(luigi.Task):
         df = df.drop("raw_mass", axis=1)
         return df
 
-    def detect(self, image: np.ndarray, channels: list = SpotsDetection().channels) -> pd.DataFrame:
+    def detect(self, image: np.ndarray, channels: list) -> pd.DataFrame:
         """Detect spots in an image series (single, z, or t)."""
         if image.ndim == 2:
             self.logger.info("Detecting spots in single frame")
