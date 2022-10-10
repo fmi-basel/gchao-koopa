@@ -10,7 +10,7 @@ Keenly optimized obliging picture analysis - Koopa is a luigi-pipeline based wor
 
 * [ ] Add alignment for multiple channels
 * [x] Add option for custom cellpose model
-* [ ] Add nicer config file support (multi-line break)
+* [x] Add nicer config file support (multi-line break)
 * [x] Add some integration tests
   * [ ] FISH 3D - with proper data once available
   * [x] FISH 2D - subset of specles

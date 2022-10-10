@@ -223,7 +223,7 @@ class SegmentationCells(luigi.Config):
     )
     min_distance = luigi.IntParameter(
         description=(
-            "Minimum radial distance to separate potentially merged nuclei (between centers)."
+            "Minimum radial distance to separate potentially merged nuclei (between centers). "
             "Only if method is otsu."
         ),
         default=50,
@@ -245,7 +245,7 @@ class SegmentationOther(luigi.Config):
     channels = luigi.ListParameter(description="List of channel indices.", default=[])
     methods = luigi.ListParameter(
         description=(
-            'List of methods. Must be passed using quotes (["", ...]) '
+            'List of methods. Must be passed using quotes (["", ...]). '
             "[options: deep, otsu, li, multiotsu]."
         ),
         default=[],

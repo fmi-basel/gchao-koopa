@@ -79,6 +79,15 @@ def get_file_list():
     return files
 
 
+def create_multiline_description(description: str) -> list:
+    """Create a list of lines to break up an otherwise long string."""
+    sentences = description.split(". ")
+    return [
+        f"# {sentence}." if idx != len(sentences) - 1 else f"# {sentence}"
+        for idx, sentence in enumerate(sentences)
+    ]
+
+
 def create_config():
     """Create a configuration file with default values."""
     config = configparser.ConfigParser(allow_no_value=True)
@@ -86,7 +95,8 @@ def create_config():
     for section in CONFIGS:
         config.add_section(section.__name__)
         for name, param in section().get_params():
-            config.set(section.__name__, f"# {name}", param.description)
+            for desc in create_multiline_description(param.description):
+                config.set(section.__name__, desc)
             config.set(
                 section.__name__,
                 name,
