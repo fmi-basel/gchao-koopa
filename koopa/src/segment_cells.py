@@ -134,9 +134,11 @@ class SegmentCells(luigi.Task):
 
     def segment_cellpose(self, image: np.ndarray, model: str) -> np.ndarray:
         """Segment a file using cellpose into nuclear maps."""
-        # TODO add support for custom pretrained model
-        # https://cellpose.readthedocs.io/en/latest/api.html#cellpose.models.CellposeModel
-        cellpose_model = models.Cellpose(model_type=model, gpu=self.gpu)
+        cellpose_model = models.CellposeModel(
+            model_type=model,
+            gpu=self.gpu,
+            pretrained_model=SegmentationCells().cellpose_model,
+        )
         self.logger.info(f"Loaded cellpose segmentation model {model}.")
 
         if General().do_3D:

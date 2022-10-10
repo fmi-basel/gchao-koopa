@@ -178,6 +178,9 @@ class SegmentationCells(luigi.Config):
     )
 
     # Cellpose options
+    cellpose_models = luigi.ListParameter(
+        description="Paths to custom cellpose models.", default=[]
+    )
     cellpose_diameter = luigi.IntParameter(
         description="Expected cellular diameter. Only if method is cellpose.",
         default=150,
@@ -276,12 +279,12 @@ class FlyBrainCells(luigi.Config):
     )
     min_area = luigi.IntParameter(
         description="Minimum area in pixels of nuclei (anything below filtered).",
-        default=0,
+        default=200,
     )
     max_area = luigi.IntParameter(
         description="Maximum area in pixels of nuclei (anything above filtered).",
-        default=0,
+        default=8_000,
     )
     dilation = luigi.IntParameter(
-        description="Dilation radius for cell segmentation.", default=0
+        description="Dilation radius for cell segmentation.", default=3
     )
