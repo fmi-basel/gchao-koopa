@@ -1,0 +1,10 @@
+name: koopa-viz
+display_name: Koopa
+contributions:
+  commands:
+    - id: koopa-viz.make_qwidget
+      title: Visualize koopa analysis directories
+      python_name: koopa_viz._widget:KoopaWidget
+  widgets:
+    - command: koopa-viz.make_qwidget
+      display_name: Koopa
