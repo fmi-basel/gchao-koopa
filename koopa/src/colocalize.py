@@ -31,14 +31,14 @@ class ColocalizeFrame(luigi.Task):
         channel_detect = SpotsDetection().channels
         index_one = channel_detect.index(self.channel_pair[0])
         index_two = channel_detect.index(self.channel_pair[1])
-        if General().do_TimeSeries:
+        if General().do_3D:
             return [
-                Detect(FileID=self.FileID, ChannelIndex=index_one),
-                Detect(FileID=self.FileID, ChannelIndex=index_two),
+                Track(FileID=self.FileID, ChannelIndex=index_one),
+                Track(FileID=self.FileID, ChannelIndex=index_two),
             ]
         return [
-            Track(FileID=self.FileID, ChannelIndex=index_one),
-            Track(FileID=self.FileID, ChannelIndex=index_two),
+            Detect(FileID=self.FileID, ChannelIndex=index_one),
+            Detect(FileID=self.FileID, ChannelIndex=index_two),
         ]
 
     def output(self):
@@ -78,7 +78,11 @@ class ColocalizeFrame(luigi.Task):
         track.to_parquet(self.output().path)
 
     @staticmethod
-    def colocalize_frame(coords_one: np.ndarray, coords_two: np.ndarray):
+    def colocalize_frame(
+        coords_one: np.ndarray,
+        coords_two: np.ndarray,
+        distance_cutoff: float = SpotsColocalization().distance_cutoff,
+    ):
         """Single frame colocalization.
 
         Euclidean distance based linear sum assigment between coordinates in
@@ -89,7 +93,7 @@ class ColocalizeFrame(luigi.Task):
 
         # Distance cutoff
         for r, c in zip(rows, cols):
-            if cdist[r, c] > SpotsColocalization().distance_cutoff:
+            if cdist[r, c] > distance_cutoff:
                 rows = rows[rows != r]
                 cols = cols[cols != c]
 
