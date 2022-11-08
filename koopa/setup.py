@@ -30,7 +30,6 @@ setup(
         "cellpose",
         "czifile",
         "deepblink",
-        "luigi",
         "matplotlib",
         "numpy",
         "pandas",
@@ -44,7 +43,6 @@ setup(
         "tqdm",
         "trackpy",
     ],
-    entry_points={"console_scripts": ["koopa = src.cli:main"]},
     # Metadata
     author="Bastian Eichenberger",
     author_email="bastian@eichenbergers.ch",
