@@ -1,17 +1,20 @@
 import os
 
-from prefect import task
+from prefect import task, get_run_logger
 import deepblink as pink
 import koopa
 
 
-@task
+@task(name="Spots (Detect)", tags=["GPU"])
 def detect(fname: str, path: os.PathLike, index_list: int, config: dict):
+    logger = get_run_logger()
+
     # Input
     index_channel = config["detect_channels"][index_list]
     fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
     image = koopa.io.load_image(fname_image)
     model = pink.io.load_model(config["detect_models"][index_channel])
+    logger.info(f"Loaded input for {fname}")
 
     # Run
     df = koopa.detect.detect_image(
@@ -24,7 +27,7 @@ def detect(fname: str, path: os.PathLike, index_list: int, config: dict):
     koopa.io.save_parquet(fname_out, df)
 
 
-@task
+@task(name="Spots (Track)")
 def track(fname: str, path: os.PathLike, index_channel: int, config: dict):
     # Input
     fname_spots = os.path.join(path, f"detection_raw_c{index_channel}", f"{fname}.parq")
@@ -45,7 +48,7 @@ def track(fname: str, path: os.PathLike, index_channel: int, config: dict):
     koopa.io.save_parquet(fname_out, track)
 
 
-@task
+@task(name="Spots (Colocalize Frames)")
 def colocalize_frame(
     fname: str,
     path: os.PathLike,
@@ -79,7 +82,7 @@ def colocalize_frame(
     koopa.io.save_parquet(fname_out, df)
 
 
-@task
+@task(name="Spots (Colocalize Tracks)")
 def colocalize_track(
     fname: str,
     path: os.PathLike,

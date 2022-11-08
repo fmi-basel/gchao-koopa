@@ -6,7 +6,7 @@ import koopa
 import pandas as pd
 
 
-@task
+@task(name="Merge Output (Single)")
 def merge_single(fname: str, path: os.PathLike, config: dict):
     # Input
     fname_segmaps = {
@@ -27,7 +27,7 @@ def merge_single(fname: str, path: os.PathLike, config: dict):
     return df
 
 
-@task
+@task(name="Merge Output (All)")
 def merge_all(path: os.PathLike, dfs: List[pd.DataFrame]):
     """Merge all analysis files into a single summary file."""
     # with multiprocessing.Pool(self.threads) as pool:

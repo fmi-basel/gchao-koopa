@@ -38,7 +38,7 @@ def segment_cells(fname: str, path: os.PathLike, config: dict):
         koopa.io.save_image(fname_nuclei, segmap_nuclei)
 
 
-@task
+@task(name="Segment Cells (Predict)", tags=["GPU"])
 def segment_cells_predict(fname: str, path: os.PathLike, config: dict):
     # Input
     fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
@@ -53,7 +53,7 @@ def segment_cells_predict(fname: str, path: os.PathLike, config: dict):
     koopa.io.save_image(fname_out, segmap)
 
 
-@task
+@task(name="Segment Cells (Merge)")
 def segment_cells_merge(fname: str, path: os.PathLike, config: dict):
     # Input
     fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
@@ -76,7 +76,7 @@ def segment_cells_merge(fname: str, path: os.PathLike, config: dict):
     koopa.io.save_image(fname_out, segmap)
 
 
-@task
+@task(name="Segment Cells (Dilate)")
 def dilate_cells(fname: str, path: os.PathLike, config: dict):
     # Input
     fname_segmap = os.path.join(path, "segmentation_nuclei_merge", f"{fname}.tif")

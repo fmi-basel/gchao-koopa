@@ -5,11 +5,9 @@ from prefect import task, get_run_logger
 import koopa
 
 
-@task(
-    name="Align",
-    description="Registration for camera or chromatic aberation alignment.",
-)
+@task(name="Align")
 def align(path_in: os.PathLike, path_out: os.PathLike, config: dict):
+    """Registration for camera or chromatic aberation alignment."""
     # Input
     images_reference, images_transform = koopa.align.load_alignment_images(
         path_in, config["channel_reference"], config["channel_transform"]
@@ -38,8 +36,9 @@ def align(path_in: os.PathLike, path_out: os.PathLike, config: dict):
     koopa.io.save_alignment(fname_matrix, sr)
 
 
-@task(name="Preprocess", description="Task to open, trim, and align images.")
+@task(name="Preprocess")
 def preprocess(fname: str, path: str, config: dict):
+    """Task to open, trim, and align images."""
     # Input
     fname_in = koopa.io.find_full_path(config["input_path"], fname, config["file_ext"])
     image = koopa.io.load_raw_image(fname_in, config["file_ext"])
