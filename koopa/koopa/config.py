@@ -1,8 +1,11 @@
+"""Configuration options and validation."""
+
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, List, Tuple, Union
 import configparser
 import datetime
 import os
+import textwrap
 
 __version__ = "0.0.1"
 
@@ -16,7 +19,11 @@ class ConfigItem:
 
 general = {
     "input_path": ConfigItem(
-        description="Path to raw input image (nd/stk or czi) files.",
+        description=(
+            "Path to raw input image (nd/stk or czi) files. "
+            "Paths should be given absolutely to improve safety. "
+            "Make sure to use the server based path style (/tungstenfs/...)."
+        ),
         default="./",
         dtype=os.PathLike,
     ),
@@ -36,15 +43,15 @@ general = {
         default=False,
         dtype=bool,
     ),
-    "gpu_index": ConfigItem(
-        description=(
-            "Index of GPU to use (nvidia-smi). "
-            "If set to -1 no GPU will be used. "
-            "Only accelerates cellpose, deep segmentation, and deepBlink."
-        ),
-        default=-1,
-        dtype=int,
-    ),
+    # "gpu_index": ConfigItem(
+    #     description=(
+    #         "Index of GPU to use (nvidia-smi). "
+    #         "If set to -1 no GPU will be used. "
+    #         "Only accelerates cellpose, deep segmentation, and deepBlink."
+    #     ),
+    #     default=-1,
+    #     dtype=int,
+    # ),
 }
 
 preprocessing_alignment = {
@@ -103,22 +110,25 @@ preprocessing_normalization = {
         description="Position to end crop x and y.", default=0, dtype=int
     ),
     "bin_axes": ConfigItem(
-        description="Mapping of axes to bin-scale.", default=[], dtype=list
+        description="Mapping of axes to bin-scale.", default=[], dtype=List[float]
     ),
 }
 
 spots_detection = {
     "detect_channels": ConfigItem(
-        description="List of channel indices to detect spots.", default=[], dtype=list
+        description="List of channel indices to detect spots.",
+        default=[],
+        dtype=List[int],
     ),
     "detect_models": ConfigItem(
         description=(
             "List of models to use for spot detection. "
             "Will use the same order as the channels provided above. "
-            'Must be passed using quotes (["", ...]) '
+            'Must be passed using quotes (["", ...]). '
+            "There should be one model for every channel listed in `detect_channels`."
         ),
         default=[],
-        dtype=list,
+        dtype=List[os.PathLike],
     ),
     "refinement_radius": ConfigItem(
         description="Radius around spots for characterization.", default=3, dtype=int
@@ -164,11 +174,11 @@ spots_colocalization = {
     "coloc_channels": ConfigItem(
         description=(
             "List of channel index-pairs for colocalization. "
-            "In format of ([reference, secondary]). "
+            "In format of [[reference, transform], ...]. "
             "Must contain values from channels in SpotsDetection."
         ),
-        default=[[]],
-        dtype=list,
+        default=[()],
+        dtype=List[Tuple[int, int]],
     ),
     "z_distance": ConfigItem(
         description=(
@@ -222,7 +232,9 @@ segmentation_cells = {
     ),
     # Cellpose options
     "cellpose_models": ConfigItem(
-        description="Paths to custom cellpose models.", default=[], dtype=list
+        description="Paths to custom cellpose models.",
+        default=[],
+        dtype=List[os.PathLike],
     ),
     "cellpose_diameter": ConfigItem(
         description="Expected cellular diameter. Only if method is cellpose.",
@@ -293,7 +305,7 @@ segmentation_other = {
         description="Enable other channel segmentation?", default=False, dtype=bool
     ),
     "sego_channels": ConfigItem(
-        description="List of channel indices.", default=[], dtype=list
+        description="List of channel indices.", default=[], dtype=List[int]
     ),
     "sego_methods": ConfigItem(
         description=(
@@ -301,7 +313,7 @@ segmentation_other = {
             "[options: deep, otsu, li, multiotsu]."
         ),
         default=[],
-        dtype=list,
+        dtype=List[str],
     ),
     "sego_models": ConfigItem(
         description=(
@@ -311,10 +323,12 @@ segmentation_other = {
             "Only if method is median."
         ),
         default=[],
-        dtype=list,
+        dtype=List[Union[os.PathLike, None]],
     ),
     "sego_backbones": ConfigItem(
-        description="List of segmentation_model backbones.", default=[], dtype=list
+        description="List of segmentation_model backbones.",
+        default=[],
+        dtype=List[Union[str, None]],
     ),
 }
 
@@ -365,25 +379,162 @@ CONFIGS = {
 }
 
 
+def create_multiline_description(description: str) -> list:
+    """Create a list of lines to break up an otherwise long string."""
+    lines = textwrap.wrap(description, width=85, break_on_hyphens=True)
+    return [f"# {line}" for line in lines]
+
+
 def create_default_config() -> configparser.ConfigParser:
-    parser = configparser.ConfigParser()
+    """Create template configuration with helptext and default arguments."""
+    parser = configparser.ConfigParser(allow_no_value=True)
+
+    # Sections
     for name, config in CONFIGS.items():
-        parser[name] = {key: value.default for key, value in config.items()}
+        parser.add_section(name)
+        # Items
+        for param, item in config.items():
+            for desc in create_multiline_description(item.description):
+                parser.set(name, desc)
+            parser.set(name, param, str(item.default))
     return parser
 
 
-def validate_config(config: configparser.ConfigParser) -> bool:
-    # sections = config.sections()
+def __validate_pathlike(value: os.PathLike, name: str) -> None:
+    """Validate path inputs."""
+    if not os.path.exists(value):
+        raise ValueError(f'Path for {name} must exist, "{value}" does not.')
+    # pardir = os.path.abspath(os.path.join(value, os.pardir))
 
+
+def __validate_primitive(value: str, dtype: type, error_msg: str) -> None:
+    """Validate primitive datatypes."""
+    try:
+        value = eval(value)
+    except NameError as err:
+        raise ValueError(error_msg) from err
+    if not isinstance(value, dtype):
+        raise ValueError(error_msg)
+
+
+def __validate_list(value: str, name: str, dtype: type) -> None:
+    """Validate lists and nested lists."""
+    try:
+        value = eval(value)
+    except NameError as err:
+        raise ValueError(
+            f"Argument {name} not parseable. Please provide a valid list."
+        ) from err
+
+    if dtype == os.PathLike:
+        (__validate_pathlike(x, f"{name}-item") for x in value)
+        return None
+
+    if dtype == Tuple[int, int]:
+        if not all(len(x) == 2 for x in value):
+            raise ValueError(f"Items in {name} must have length 2.")
+        if not all(isinstance(x1, int) & isinstance(x2, int) for x1, x2 in value):
+            raise ValueError(f"List items in {name} must be integers.")
+        return None
+
+    if dtype == Union[os.PathLike, None]:
+        if not all(x is None or __validate_pathlike(x, name) for x in value):
+            raise ValueError(f"List items in {name} must be valid paths or None.")
+
+    if dtype == Union[str, None]:
+        if not all(x is None or isinstance(x, str) for x in value):
+            raise ValueError(f"List items in {name} must be strings or None.")
+
+    if not all(isinstance(i, dtype) for i in value):
+        raise ValueError(f"All items in list {name} must be of type {dtype}.")
+
+
+def __validate_type(value: str, name: str, dtype: type) -> None:
+    """Validate all parameter types."""
+    # Primitives
+    if dtype == bool:
+        error_msg = f'Argument {name} not parseable. Must be "True" or "False".'
+        __validate_primitive(value, bool, error_msg)
+    if dtype == int:
+        error_msg = f"Argument {name} not parseable. Must be an integer."
+        __validate_primitive(value, int, error_msg)
+    if dtype == float:
+        error_msg = f"Argument {name} not parseable. Must be a floating point value."
+        __validate_primitive(value, float, error_msg)
+
+    # Composites
+    if dtype == os.PathLike:
+        __validate_pathlike(value, name)
+    if dtype == List[os.PathLike]:
+        __validate_list(value, name, os.PathLike)
+
+
+def __validate_detection(config: configparser.ConfigParser) -> None:
+    """Special validation for spot based configurations."""
+    detect_channels = eval(config["SpotsDetection"]["detect_channels"])
+    detect_models = eval(config["SpotsDetection"]["detect_models"])
+
+    if not detect_channels:
+        raise ValueError("Must pass at least one channel for detection.")
+    if len(detect_channels) != len(detect_models):
+        raise ValueError(
+            "All channels for detection must have one and only one model associated."
+        )
+    if eval(config["SpotsColocalization"]["coloc_enabled"]):
+        coloc_channels = eval(config["SpotsColocalization"]["coloc_channels"])
+        coloc_channels = [channel for pair in coloc_channels for channel in pair]
+        if not all(c in detect_channels for c in coloc_channels):
+            raise ValueError(
+                "All channels used in coloc_channels must be passed to detect_channels too."
+            )
+
+
+# TODO add check if models and backbones match up?
+def __validate_sego(config: configparser.ConfigParser) -> None:
+    """Special validation for SegmentationOther."""
+    if not eval(config["SegmentationOther"]["sego_enabled"]):
+        return None
+
+    sego_channels = eval(config["SegmentationOther"]["sego_channels"])
+    sego_methods = eval(config["SegmentationOther"]["sego_methods"])
+
+    if len(sego_channels) != len(sego_methods):
+        raise ValueError(
+            "All channels for segmentation must have one and only one method associated."
+        )
+
+
+def validate_config(config: configparser.ConfigParser) -> None:
+    """Extensive validation of configuration file to verify format and arguments."""
+    # Check sections
     if not all(c in config for c in CONFIGS.keys()):
         raise ValueError("Not all sections found in config.")
 
-    # TODO
-    # dtypes
-    # paths
+    for section in CONFIGS.keys():
+        for name, value in config[section].items():
+            # Skip section if not enabled
+            if "enabled" in name and eval(value) is False:
+                break
+
+            # Check params
+            try:
+                source = CONFIGS[section][name]
+            except KeyError as err:
+                raise ValueError(
+                    f"Found unknown configuration option. {section}>{name} unknown."
+                ) from err
+
+            # Check dtypes
+            __validate_type(value, name, source.dtype)
+
+    # Check special
+    __validate_detection(config)
+    __validate_sego(config)
+    return True
 
 
 def add_versioning(config: configparser.ConfigParser) -> configparser.ConfigParser:
+    """Add timestamp and version data to configuration."""
     config["Versioning"] = {
         "timestamp": str(datetime.datetime.now().timestamp()),
         "version": __version__,
@@ -392,6 +543,7 @@ def add_versioning(config: configparser.ConfigParser) -> configparser.ConfigPars
 
 
 def flatten_config(config: configparser.ConfigParser) -> dict:
+    """Convert sectioned configuration to flat dictionary."""
     flat_config = {}
     for section in config.sections():
         for key in config[section]:
