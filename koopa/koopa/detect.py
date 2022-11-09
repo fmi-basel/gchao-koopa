@@ -1,6 +1,5 @@
 """Raw spot detection."""
 
-from tqdm import tqdm
 import deepblink as pink
 import numpy as np
 import pandas as pd
@@ -56,7 +55,7 @@ def detect_image(
         )
 
     frames = []
-    for frame, image_curr in tqdm(enumerate(image), total=image.shape[0]):
+    for frame, image_curr in enumerate(image):
         df = detect_frame(image_curr, model, refinement_radius)
         df["frame"] = frame
         df["channel"] = index_channel

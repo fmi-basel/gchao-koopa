@@ -2,7 +2,6 @@
 
 import os
 
-from tqdm import tqdm
 import numpy as np
 
 with open(os.devnull, "w") as devnull:
@@ -14,6 +13,8 @@ import tensorflow as tf
 
 
 class DeepSegmentation:
+    """Wrapper to use segmentation_models based segmentation."""
+
     def __init__(self, fname_model: str, backbone: str) -> None:
         self.backbone = backbone
         self.model = tf.keras.models.load_model(
@@ -90,7 +91,7 @@ def segment(image: np.ndarray, index_list: int, config: dict) -> np.ndarray:
         )
 
     masks = []
-    for frame in tqdm(image):
+    for frame in image:
         if method == "deep":
             mask = segmenter.segment(frame)
         if method == "otsu":
