@@ -1,8 +1,6 @@
 """Frame and track colocalization."""
 
 from typing import Tuple
-import logging
-import os
 
 import numpy as np
 import pandas as pd
@@ -80,6 +78,7 @@ def colocalize_frames(
     z_distance: float,
     distance_cutoff: int,
 ) -> pd.DataFrame:
+    """Wrapper to colocalize two frame-dataframes."""
     coords_one = df_one[["y", "x", "frame"]].to_numpy()
     coords_two = df_two[["y", "x", "frame"]].to_numpy()
     coords_one[:, 2] *= z_distance
@@ -105,6 +104,7 @@ def colocalize_tracks(
     min_frames: int,
     distance_cutoff: int,
 ) -> pd.DataFrame:
+    """Wrapper to colocalize two track-dataframes."""
     # Colocalize both channels
     coloc_one, coloc_two = __colocalize_tracks(
         df_one, df_two, min_frames, distance_cutoff

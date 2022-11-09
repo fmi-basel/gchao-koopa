@@ -128,6 +128,7 @@ def register_alignment_deepblink(
 
 
 def get_stackreg(matrix: np.ndarray) -> pystackreg.StackReg:
+    """Create an affine pystackreg matrix from a transformation matrix."""
     sr = pystackreg.StackReg(pystackreg.StackReg.AFFINE)
     sr.set_matrix(matrix)
     return sr

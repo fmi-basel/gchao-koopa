@@ -1,3 +1,5 @@
+"""I/O functions for all filetypes used in koopa."""
+
 import configparser
 import glob
 import os
@@ -96,20 +98,31 @@ def load_raw_image(fname: str, file_ext: str) -> np.ndarray:
 
 
 def load_image(fname: os.PathLike) -> np.ndarray:
+    """Open a tif file with image or segmentation data."""
+    if os.path.splitext(fname)[1] != ".tif":
+        raise ValueError(f'Image file must end in ".tif". {fname} does not.')
+
     return tifffile.imread(fname)
 
 
 def load_parquet(fname: os.PathLike) -> pd.DataFrame:
+    """Open a parquet file."""
     return pd.read_parquet(fname)
 
 
 def load_alignment(fname: os.PathLike) -> pystackreg.StackReg:
-    """Load alignment matrix from file."""
+    """Create alignment matrix from file."""
     matrix = np.load(fname)
     return align.get_stackreg(matrix)
 
 
 def load_config(fname: os.PathLike) -> dict:
+    """Load configuration file."""
+    if not os.path.isfile(fname):
+        raise ValueError(f"Configuration file must exist. {fname} does not.")
+    if os.path.splitext(fname)[1] != ".cfg":
+        raise ValueError(f'Configuration file must end in ".cfg". {fname} does not.')
+
     config = configparser.ConfigParser()
     config.read(fname)
     return config
@@ -121,19 +134,23 @@ def save_alignment(fname: os.PathLike, sr: pystackreg.StackReg):
 
 
 def save_image(fname: os.PathLike, image: np.ndarray):
+    """Save image to disk."""
     create_path(fname)
     skimage.io.imsave(fname, image, check_contrast=False)
 
 
-def save_parquet(fname: os.PathLike, df: pd.DataFrame):
-    create_path(fname)
-    df.to_parquet(fname)
-
-
 def save_config(fname: os.PathLike, config: configparser.ConfigParser):
+    """Save configuration file to disk."""
     with open(fname, "w") as f:
         config.write(f)
 
 
+def save_parquet(fname: os.PathLike, df: pd.DataFrame):
+    """Save parquet file to disk."""
+    create_path(fname)
+    df.to_parquet(fname)
+
+
 def save_csv(fname: os.PathLike, df: pd.DataFrame):
+    """Save csv file to disk."""
     df.to_csv(fname, index=False)

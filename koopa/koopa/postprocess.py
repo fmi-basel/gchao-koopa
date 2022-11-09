@@ -1,13 +1,11 @@
 """Merge all tasks to summary."""
 
 from typing import Dict
-import os
 
 import numpy as np
 import pandas as pd
 import scipy.ndimage as ndi
 import skimage.measure
-import tifffile
 
 
 def get_value(row: pd.Series, image: np.ndarray) -> float:
@@ -54,6 +52,7 @@ def get_cell_properties(segmap: np.ndarray, name: str, do_3d: bool) -> pd.DataFr
 def add_segmentation_data(
     df: pd.DataFrame, segmaps: Dict[str, np.ndarray], config: dict
 ) -> pd.DataFrame:
+    """Combine information from segmaps with spots-dataframe."""
     # Config
     selection = config["selection"]
     cell_id = "nuclei" if selection == "nuclei" else "cyto"

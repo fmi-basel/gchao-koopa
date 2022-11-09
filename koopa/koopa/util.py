@@ -1,6 +1,6 @@
-from typing import List
+"""Utilities for koopa flows."""
+
 import glob
-import configparser
 import os
 
 import pandas as pd
@@ -51,6 +51,7 @@ def get_final_spot_file(fname: str, path: os.PathLike, config: dict) -> os.PathL
 
 
 def configure_gpu(gpu_index: int, memory_limit: int = 8192):
+    """Set environment variables for GPU usage."""
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu_index if gpu_index else "None"
     os.environ["OMP_NUM_THREADS"] = "4"
     os.environ["OPENBLAS_NUM_THREADS"] = "4"
