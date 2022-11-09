@@ -1,4 +1,3 @@
-import argparse
 import os
 
 from prefect import flow, get_run_logger, unmapped
@@ -12,6 +11,7 @@ import tasks_spots
 
 # @flow(name="Single Image", task_runner=ConcurrentTaskRunner)
 def workflow_single(fname: str, config: dict):
+    """Subflow for all tasks of a single image."""
     logger = get_run_logger()
     logger.info(f"Started running {fname}")
 
@@ -85,8 +85,13 @@ def workflow_single(fname: str, config: dict):
 @flow(name="Koopa", version=koopa.__version__)
 def workflow(fname: str):
     """Core koopa workflow."""
+    logger = get_run_logger()
+    logger.info("Started running Koopa!")
+
+    # Parse configuration
     cfg = koopa.io.load_config(fname)
     koopa.config.validate_config(cfg)
+    logger.info("Configuration file validated.")
     config = koopa.config.flatten_config(cfg)
     path_output = config["output_path"]
 
@@ -107,10 +112,3 @@ def workflow(fname: str):
     fnames = koopa.util.get_file_list(config["input_path"], config["file_ext"])
     dfs = [workflow_single(fname, config) for fname in fnames]
     tasks_postprocess.merge_all(path_output, dfs)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str)
-    args = parser.parse_args()
-    workflow(args.config)
