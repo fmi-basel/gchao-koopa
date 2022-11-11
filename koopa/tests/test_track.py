@@ -11,3 +11,7 @@ def test_link_brightest_particles():
     # ensure particles get removed
     # ensure average brightness is higher
     pass
+
+
+def test_subtract_drift():
+    pass
