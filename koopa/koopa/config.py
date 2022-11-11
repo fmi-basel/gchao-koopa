@@ -43,15 +43,6 @@ general = {
         default=False,
         dtype=bool,
     ),
-    # "gpu_index": ConfigItem(
-    #     description=(
-    #         "Index of GPU to use (nvidia-smi). "
-    #         "If set to -1 no GPU will be used. "
-    #         "Only accelerates cellpose, deep segmentation, and deepBlink."
-    #     ),
-    #     default=-1,
-    #     dtype=int,
-    # ),
 }
 
 preprocessing_alignment = {
@@ -139,7 +130,7 @@ spots_tracking = {
     "gap_frames": ConfigItem(
         description=(
             "Maximum number of frames to skip in tracks. "
-            "Set to 0 if do_3d is set to True."
+            "Set to 0 if do_3d is set to True!"
         ),
         default=3,
         dtype=int,
@@ -160,7 +151,7 @@ spots_tracking = {
     "subtract_drift": ConfigItem(
         description=(
             "If ensemble drift xy(t) should be subtracted. "
-            "Only if do_timeseries is set to True."
+            "Only available if do_timeseries is set to True."
         ),
         default=False,
         dtype=bool,
@@ -414,7 +405,9 @@ def __validate_primitive(value: str, dtype: type, error_msg: str) -> None:
     except NameError as err:
         raise ValueError(error_msg) from err
     if not isinstance(value, dtype):
-        raise ValueError(error_msg)
+        # If integers are passed to float params
+        if not (dtype == float and isinstance(value, int)):
+            raise ValueError(error_msg)
 
 
 def __validate_list(value: str, name: str, dtype: type) -> None:
