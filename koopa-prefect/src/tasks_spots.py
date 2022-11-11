@@ -56,6 +56,9 @@ def colocalize_frame(
     index_transform: int,
     config: dict,
 ):
+    logger = get_run_logger()
+    logger.info(f"Colocalizing {index_reference}<-{index_transform}")
+
     # Input
     folder = "final" if config["do_3d"] else "raw"
     fname_reference = os.path.join(
@@ -90,6 +93,9 @@ def colocalize_track(
     index_transform: int,
     config: dict,
 ):
+    logger = get_run_logger()
+    logger.info(f"Colocalizing {index_reference}<-{index_transform}")
+
     # Input
     fname_reference = os.path.join(
         path, f"detection_final_c{index_reference}", f"{fname}.parq"

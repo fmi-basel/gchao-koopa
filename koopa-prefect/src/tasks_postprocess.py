@@ -1,13 +1,15 @@
 from typing import List
 import os
 
-from prefect import task
+from prefect import task, get_run_logger
 import koopa
 import pandas as pd
 
 
 @task(name="Merge Output (Single)")
 def merge_single(fname: str, path: os.PathLike, config: dict):
+    logger = get_run_logger()
+
     # Input
     fname_segmaps = {
         "nuclei": os.path.join(path, "segmentation_nuclei", f"{fname}.tif"),
@@ -22,6 +24,7 @@ def merge_single(fname: str, path: os.PathLike, config: dict):
 
     # Run
     df = koopa.postprocess.add_segmentation_data(df, segmaps, config)
+    logger.debug(f"Merged files for {fname}")
 
     # Return
     return df
@@ -30,8 +33,6 @@ def merge_single(fname: str, path: os.PathLike, config: dict):
 @task(name="Merge Output (All)")
 def merge_all(path: os.PathLike, dfs: List[pd.DataFrame]):
     """Merge all analysis files into a single summary file."""
-    # with multiprocessing.Pool(self.threads) as pool:
-    #     dfs = pool.map(self.merge_file, self.file_list)
     df = pd.concat(dfs, ignore_index=True)
     fname_out = os.path.join(path, "summary.csv")
     koopa.io.save_csv(fname_out, df)

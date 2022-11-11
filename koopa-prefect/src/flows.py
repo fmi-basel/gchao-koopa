@@ -1,6 +1,7 @@
-import os
+from typing import List
 
 from prefect import flow, get_run_logger, unmapped
+from prefect_dask.task_runners import DaskTaskRunner
 import koopa
 
 import tasks_postprocess
@@ -9,106 +10,151 @@ import tasks_segment
 import tasks_spots
 
 
-# @flow(name="Single Image", task_runner=ConcurrentTaskRunner)
-def workflow_single(fname: str, config: dict):
-    """Subflow for all tasks of a single image."""
-    logger = get_run_logger()
-    logger.info(f"Started running {fname}")
+# cluster_class="dask_jobqueue.SLURMCluster",
+# cluster_kwargs={
+#     "n_workers": 1,
+#     "account": "ppi",
+#     "queue": "cpu_short",
+#     "cores": 4,
+#     "memory": "16GB",
+#     "walltime": "00:30:00",
+#     "job_extra_directives": ["--ntasks=1"],
+# },
+# adapt_kwargs={"minimum": 1, "maximum": 1},
 
-    # Config
-    path_output = config["output_path"]
-    do_3d = config["do_3d"]
-    do_timeseries = config["do_timeseries"]
-    args = dict(fname=fname, path=path_output, config=config)
-    unmapped_args = {k: unmapped(v) for k, v in args.items()}
-    final_spots = None
-    seg_other = []
 
-    # Preprocess
-    preprocess = tasks_preprocess.preprocess.submit(**args)
+def file_independent(config: dict):
+    if not config["alignment_enabled"]:
+        return None
 
-    # Segmentation cells
-    if config["brains_enabled"]:
-        brain_1 = tasks_segment.segment_cells_predict.submit(
-            **args, wait_for=[preprocess]
-        )
-        brain_2 = tasks_segment.segment_cells_merge.submit(**args, wait_for=[brain_1])
-        seg_cells = tasks_segment.dilate_cells.submit(**args, wait_for=[brain_2])
-    else:
-        seg_cells = tasks_segment.segment_cells.submit(**args, wait_for=[preprocess])
-
-    # Segmentation Other
-    if config["sego_enabled"]:
-        seg_other = tasks_segment.segment_other.map(
-            **unmapped_args,
-            index_list=list(range(len(config["sego_channels"]))),
-            wait_for=[preprocess],
-        )
-
-    # Spot detection
-    spots = tasks_spots.detect.map(
-        **unmapped_args,
-        index_list=list(range(len(config["detect_channels"]))),
-        wait_for=[preprocess],
-    )
-    if do_3d or do_timeseries:
-        spots = tasks_spots.track.map(
-            unmapped(**args), index_channel=config["detect_channels"], wait_for=spots
-        )
-    final_spots = spots
-
-    # Colocalization
-    if config["coloc_enabled"]:
-        reference = [i[0] for i in config["coloc_channels"]]
-        transform = [i[1] for i in config["coloc_channels"]]
-        if do_timeseries:
-            coloc = tasks_spots.colocalize_track.submit(
-                **unmapped_args,
-                index_reference=reference,
-                index_transform=transform,
-                wait_for=spots,
-            )
-        else:
-            coloc = tasks_spots.colocalize_frame.submit(
-                **unmapped_args,
-                index_reference=reference,
-                index_transform=transform,
-                wait_for=spots,
-            )
-        final_spots = coloc
-
-    return tasks_postprocess.merge_single.submit(
-        **args, wait_for=[*final_spots, seg_cells, *seg_other]
+    tasks_preprocess.align.submit(
+        path_in=config["alignment_path"], path_out=config["output_path"], config=config
     ).wait()
 
 
-@flow(name="Koopa", version=koopa.__version__)
-def workflow(fname: str):
-    """Core koopa workflow."""
+def cell_segmentation(
+    fnames: List[str], config: dict, kwargs: dict, dependencies: list
+):
+    if not config["brains_enabled"]:
+        return tasks_segment.segment_cells.map(fnames, **kwargs, wait_for=dependencies)
+
+    brain_1 = tasks_segment.segment_cells_predict.map(
+        fnames, **kwargs, wait_for=dependencies
+    )
+    brain_2 = tasks_segment.segment_cells_merge.map(fnames, **kwargs, wait_for=brain_1)
+    return tasks_segment.dilate_cells.map(fnames, **kwargs, wait_for=brain_2)
+
+
+def other_segmentation(
+    fnames: List[str], config: dict, kwargs: dict, dependencies: list
+):
+    if not config["sego_enabled"]:
+        return []
+
+    channels = range(len(config["sego_channels"]))
+    fnames_map = [f for f in fnames for _ in channels]
+    index_map = [c for _ in fnames for c in channels]
+
+    seg_other = tasks_segment.segment_other.map(
+        fnames_map, **kwargs, index_list=index_map, wait_for=dependencies
+    )
+    return seg_other
+
+
+def spot_detection(fnames: List[str], config: dict, kwargs: dict, dependencies: list):
+    channels = range(len(config["detect_channels"]))
+    fnames_map = [f for f in fnames for _ in channels]
+    index_map = [c for _ in fnames for c in channels]
+    spots = tasks_spots.detect.map(
+        fnames_map, **kwargs, index_list=index_map, wait_for=dependencies
+    )
+
+    if config["do_3d"] or config["do_timeseries"]:
+        fnames_map = [f for f in fnames for _ in config["detect_channels"]]
+        index_map = [c for _ in fnames for c in config["detect_channels"]]
+        spots = tasks_spots.track.map(
+            fnames_map, **kwargs, index_channel=index_map, wait_for=spots
+        )
+    return spots
+
+
+def colocalization(fnames: List[str], config: dict, kwargs: dict, dependencies: list):
+    if not config["coloc_enabled"]:
+        return dependencies
+
+    reference = [i[0] for _ in fnames for i in config["coloc_channels"]]
+    transform = [i[1] for _ in fnames for i in config["coloc_channels"]]
+    fnames_map = [f for f in fnames for _ in config["coloc_channels"]]
+
+    if config["do_timeseries"]:
+        coloc = tasks_spots.colocalize_track.map(
+            fnames_map,
+            **kwargs,
+            index_reference=reference,
+            index_transform=transform,
+            wait_for=dependencies
+        )
+    else:
+        coloc = tasks_spots.colocalize_frame.map(
+            fnames_map,
+            **kwargs,
+            index_reference=reference,
+            index_transform=transform,
+            wait_for=dependencies
+        )
+    return coloc
+
+
+def merging(fnames: List[str], config: dict, kwargs: dict, dependencies: list):
+    dfs = tasks_postprocess.merge_single.map(fnames, **kwargs, wait_for=dependencies)
+    tasks_postprocess.merge_all(config["output_path"], dfs, wait_for=dfs)
+
+
+@flow(
+    name="Core",
+    task_runner=DaskTaskRunner,
+    persist_result=False
+)
+def workflow_core(fnames: List[str], config: dict):
+    """Subflow for all image based tasks."""
+    # Config
+    kwargs = dict(path=unmapped(config["output_path"]), config=unmapped(config))
+
+    # Preprocess
+    preprocess = tasks_preprocess.preprocess.map(fnames, **kwargs)
+
+    # Segmentation
+    seg_cells = cell_segmentation(fnames, config, kwargs, dependencies=preprocess)
+    seg_other = other_segmentation(fnames, config, kwargs, dependencies=preprocess)
+
+    # Spots
+    spots = spot_detection(fnames, config, kwargs, dependencies=preprocess)
+    spots = colocalization(fnames, config, kwargs, dependencies=spots)
+
+    # Merge
+    merging(fnames, config, kwargs, dependencies=[*spots, *seg_cells, *seg_other])
+
+
+@flow(
+    name="Koopa",
+    version=koopa.__version__,
+    task_runner=DaskTaskRunner,
+    persist_result=False
+)
+def workflow(config_path: str):
+    """Core koopa workflow.
+
+    All documentation can be found on the koopa wiki (https://github.com/BBQuercus/koopa/wiki).
+    """
     logger = get_run_logger()
     logger.info("Started running Koopa!")
-
-    # Parse configuration
-    cfg = koopa.io.load_config(fname)
-    koopa.config.validate_config(cfg)
-    logger.info("Configuration file validated.")
-    config = koopa.config.flatten_config(cfg)
-    path_output = config["output_path"]
-
-    # Save config
-    cfg = koopa.config.add_versioning(cfg)
-    fname_config = os.path.join(path_output, "koopa.cfg")
-    koopa.io.save_config(fname_config, cfg)
+    koopa.util.configure_gpu(False)
 
     # File independent tasks
-    if config["alignment_enabled"]:
-        tasks_preprocess.align.submit(
-            path_in=config["alignment_path"],
-            path_out=path_output,
-            config=config,
-        ).wait()
+    config = tasks_preprocess.configuration(config_path)
+    file_independent(config)
 
     # Workflow
     fnames = koopa.util.get_file_list(config["input_path"], config["file_ext"])
-    dfs = [workflow_single(fname, config) for fname in fnames]
-    tasks_postprocess.merge_all(path_output, dfs)
+    workflow_core(fnames, config)
+    logger.info("Koopa finished analyzing everything!")

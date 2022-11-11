@@ -5,6 +5,23 @@ from prefect import task, get_run_logger
 import koopa
 
 
+@task(name="Configuration")
+def configuration(path: os.PathLike):
+    logger = get_run_logger()
+
+    # Parse configuration
+    cfg = koopa.io.load_config(path)
+    koopa.config.validate_config(cfg)
+    logger.info("Configuration file validated.")
+    config = koopa.config.flatten_config(cfg)
+
+    # Save config
+    cfg = koopa.config.add_versioning(cfg)
+    fname_config = os.path.join(config["output_path"], "koopa.cfg")
+    koopa.io.save_config(fname_config, cfg)
+    return config
+
+
 @task(name="Align")
 def align(path_in: os.PathLike, path_out: os.PathLike, config: dict):
     """Registration for camera or chromatic aberation alignment."""
@@ -39,6 +56,8 @@ def align(path_in: os.PathLike, path_out: os.PathLike, config: dict):
 @task(name="Preprocess")
 def preprocess(fname: str, path: str, config: dict):
     """Task to open, trim, and align images."""
+    logger = get_run_logger()
+
     # Input
     fname_in = koopa.io.find_full_path(config["input_path"], fname, config["file_ext"])
     image = koopa.io.load_raw_image(fname_in, config["file_ext"])
@@ -58,9 +77,12 @@ def preprocess(fname: str, path: str, config: dict):
         )
     if config["bin_axes"]:
         image = koopa.preprocess.bin_image(image, config["bin_axes"])
-    # if config["alignment_enabled"]:
-    #     sr = koopa.io.load_alignment()
-    #     image = koopa.align.align_image(image, sr, TODO)
+    # TODO add multiple transform channels?
+    if config["alignment_enabled"]:
+        fname_align = os.path.join(path, "alignment.npy")
+        sr = koopa.io.load_alignment(fname_align)
+        image = koopa.align.align_image(image, sr, [config["channel_transform"]])
+    logger.debug(f"Preprocessed {fname}")
 
     # Save
     fname_out = os.path.join(path, "preprocessed", f"{fname}.tif")
