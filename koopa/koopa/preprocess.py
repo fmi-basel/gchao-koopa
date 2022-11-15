@@ -8,7 +8,11 @@ import skimage.transform
 
 
 def get_sharpest_slice(image: np.ndarray, axis: int = 0) -> np.ndarray:
-    """Returns index of the sharpest slice in an image array."""
+    """Returns index of the sharpest slice in an image array.
+
+    Uses the average gradient magnitude.
+    Adapted from https://stackoverflow.com/questions/6646371/detect-which-image-is-sharper
+    """
     sharpness = []
     for array in np.swapaxes(image, 0, axis):
         y, x = np.gradient(array)
@@ -21,14 +25,23 @@ def get_sharpest_slice(image: np.ndarray, axis: int = 0) -> np.ndarray:
 def register_3d_image(
     image: np.ndarray, method: Literal["maximum", "mean", "sharpest"]
 ) -> np.ndarray:
-    """Intensity projection to convert 3D image to 2D."""
-    z_axis = image.shape.index(sorted(image.shape)[1])  # 0 is channel, 1 is z
+    """Intensity projection to convert 3D+C image to 2D."""
+    if image.ndim != 4:
+        raise ValueError("Image must be 4D.")
+
+    z_axis = image.shape.index(sorted(image.shape)[1])
+
     if method == "maximum":
         return image.max(axis=z_axis)
     if method == "mean":
         return image.mean(axis=z_axis)
     if method == "sharpest":
-        return get_sharpest_slice(image, z_axis)
+        c_axis = image.shape.index(sorted(image.shape)[0])
+        channels = []
+        for channel in np.moveaxis(image, c_axis, 0):
+            z_axis = channel.shape.index(sorted(channel.shape)[0])
+            channels.append(get_sharpest_slice(channel, z_axis))
+        return np.stack(channels)
     raise ValueError(f"Unknown 3D registration method: {method}")
 
 
@@ -48,6 +61,9 @@ def bin_image(image: np.ndarray, bin_axes: List[float]) -> np.ndarray:
 
 def trim_image(image: np.ndarray, frame_start: int, frame_end: int) -> np.ndarray:
     """Remove first and last frames from image."""
+    if image.ndim != 4:
+        raise ValueError("Image must be 4D.")
+
     if frame_start > 0:
         image = image[:, frame_start:]
 
