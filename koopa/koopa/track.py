@@ -17,7 +17,6 @@ def track(
         memory=gap_frames,
     )
     track = tp.filter_stubs(track, threshold=min_length)
-    # logger.info(f"Tracked {len(track)} spots.")
     return track
 
 
