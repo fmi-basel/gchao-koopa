@@ -1,0 +1,12 @@
+"NDInfoFile", Version 1.0
+"Description", File recreated from images.
+"StartTime1", 20220518 10:26:04.544
+"DoTimelapse", FALSE
+"DoStage", FALSE
+"DoWave", TRUE
+"NWavelengths", 2
+"WaveName1", "conf561-488dual"
+"WaveName2", "conf488-561dual"
+"DoZSeries", FALSE
+"WaveInFileName", TRUE
+"EndFile"

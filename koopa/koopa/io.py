@@ -24,10 +24,7 @@ def create_path(fname: os.PathLike):
 
 def find_full_path(path: os.PathLike, fname: str, file_ext: str):
     """Return the absolute path to the input file with recursive globbing."""
-    files = glob.glob(
-        os.path.join(path, "**", f"{fname}.{file_ext}"),
-        recursive=True,
-    )
+    files = glob.glob(os.path.join(path, "**", f"{fname}.{file_ext}"), recursive=True)
     if len(files) != 1:
         raise ValueError(f"Could not find unique file for {fname}.")
     return files[0]
@@ -76,7 +73,12 @@ def load_nd(fname: os.PathLike) -> np.ndarray:
 
     for channel in range(1, channels + 1):
         channel_name = nd_data[f"WaveName{channel}"]
-        fname_image = f"{basename}_w{channel}{channel_name}.stk"
+        basename_image = f"{basename}_w{channel}{channel_name}"
+        fname_image = (
+            f"{basename_image}.stk"
+            if os.path.isfile(f"{basename_image}.stk")
+            else f"{basename_image}.tif"
+        )
         image = skimage.io.imread(fname_image).astype(np.uint16)
         images.append(image)
 
@@ -116,7 +118,7 @@ def load_alignment(fname: os.PathLike) -> pystackreg.StackReg:
     return align.get_stackreg(matrix)
 
 
-def load_config(fname: os.PathLike) -> dict:
+def load_config(fname: os.PathLike) -> configparser.ConfigParser:
     """Load configuration file."""
     if not os.path.isfile(fname):
         raise ValueError(f"Configuration file must exist. {fname} does not.")
