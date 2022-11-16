@@ -144,7 +144,10 @@ spots_tracking = {
         dtype=int,
     ),
     "search_range": ConfigItem(
-        description=("Pixel search range between spots in tracks/stacks."),
+        description=(
+            "Pixel search range between spots in tracks/stacks. "
+            "Calculated by euclidean distance."
+        ),
         default=5,
         dtype=int,
     ),
@@ -404,10 +407,11 @@ def __validate_primitive(value: str, dtype: type, error_msg: str) -> None:
         value = eval(value)
     except NameError as err:
         raise ValueError(error_msg) from err
+    # If integers are passed to float params
+    if dtype == float and isinstance(value, int):
+        return
     if not isinstance(value, dtype):
-        # If integers are passed to float params
-        if not (dtype == float and isinstance(value, int)):
-            raise ValueError(error_msg)
+        raise ValueError(error_msg)
 
 
 def __validate_list(value: str, name: str, dtype: type) -> None:
@@ -506,6 +510,7 @@ def validate_config(config: configparser.ConfigParser) -> None:
     for section in CONFIGS.keys():
         for name, value in config[section].items():
             # Skip section if not enabled
+            # TODO? Will deem any non False values ok to run
             if "enabled" in name and eval(value) is False:
                 break
 
