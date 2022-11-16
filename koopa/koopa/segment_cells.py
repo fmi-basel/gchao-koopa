@@ -54,11 +54,9 @@ def segment_cellpose(
     cellpose_model = models.CellposeModel(
         model_type=model, gpu=gpu, pretrained_model=pretrained
     )
-    # self.logger.info(f"Loaded cellpose segmentation model {model}.")
 
     if do_3d:
         image = np.array([(i - np.mean(i)) / np.std(i) for i in image])
-        # self.logger.info("Normalized image along z-dimension.")
 
     segmap, *_ = cellpose_model.eval(
         [image],
@@ -74,10 +72,10 @@ def segment_cellpose(
 
 def remove_border_objects(image: np.ndarray) -> np.ndarray:
     """Remove objects touching the border of the image."""
-    # self.logger.info("Removing border objects.")
-    for idx, prop in enumerate(skimage.measure.regionprops(image)):
-        if bool({0, *image.shape} & {*prop.bbox}):
-            image = np.where(image == idx, 0, image)
+    shape = {0, *image.shape}
+    for prop in skimage.measure.regionprops(image):
+        if bool(shape & {*prop.bbox}):
+            image = np.where(image == prop.label, 0, image)
     return skimage.measure.label(image)
 
 
@@ -85,7 +83,6 @@ def segment_background(
     image: np.ndarray, method: str, upper_clip: int, gaussian: int
 ) -> np.ndarray:
     """Segmentation of the channel of interest."""
-    # self.logger.info(f"Segmenting background with {method}.")
     image = np.clip(image, 0, np.quantile(image, upper_clip))
     image = skimage.filters.gaussian(image, gaussian)
 
