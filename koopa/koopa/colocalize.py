@@ -115,4 +115,5 @@ def colocalize_tracks(
 
     # Merge
     df = pd.concat([df_one, df_two])
+    df["coloc_particle"] = df.get("coloc_particle", np.nan)
     return df

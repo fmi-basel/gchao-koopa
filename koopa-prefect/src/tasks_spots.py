@@ -76,7 +76,7 @@ def colocalize_frame(
         df_reference,
         df_transform,
         name,
-        config["z_distance"],
+        config["z_distance"] if config["do_3d"] else 1,
         config["distance_cutoff"],
     )
 
