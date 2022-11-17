@@ -129,7 +129,7 @@ def segment_cyto(image: np.ndarray, config: dict) -> np.ndarray:
     return segment_cellpose(
         image,
         model="cyto",
-        pretrained=config["cellpose_pretrained"],
+        pretrained=config["cellpose_models"],
         do_3d=config["do_3d"],
         diameter=config["cellpose_diameter"],
         resample=config["cellpose_resample"],

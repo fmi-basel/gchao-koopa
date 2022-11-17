@@ -56,7 +56,7 @@ def add_segmentation_data(
     # Config
     selection = config["selection"]
     cell_id = "nuclei" if selection == "nuclei" else "cyto"
-    full_selection = ("cyto", "nuclei") if selection == "both" else (selection)
+    full_selection = ("cyto", "nuclei") if selection == "both" else (selection,)
 
     # Cellular segmentation
     df["cell_id"] = df.apply(lambda row: get_value(row, segmaps[cell_id]), axis=1)

@@ -87,34 +87,29 @@ def colocalization(fnames: List[str], config: dict, kwargs: dict, dependencies: 
     fnames_map = [f for f in fnames for _ in config["coloc_channels"]]
 
     if config["do_timeseries"]:
-        coloc = tasks_spots.colocalize_track.map(
+        return tasks_spots.colocalize_track.map(
             fnames_map,
             **kwargs,
             index_reference=reference,
             index_transform=transform,
             wait_for=dependencies
         )
-    else:
-        coloc = tasks_spots.colocalize_frame.map(
-            fnames_map,
-            **kwargs,
-            index_reference=reference,
-            index_transform=transform,
-            wait_for=dependencies
-        )
-    return coloc
+
+    return tasks_spots.colocalize_frame.map(
+        fnames_map,
+        **kwargs,
+        index_reference=reference,
+        index_transform=transform,
+        wait_for=dependencies
+    )
 
 
 def merging(fnames: List[str], config: dict, kwargs: dict, dependencies: list):
     dfs = tasks_postprocess.merge_single.map(fnames, **kwargs, wait_for=dependencies)
-    tasks_postprocess.merge_all(config["output_path"], dfs, wait_for=dfs)
+    tasks_postprocess.merge_all.submit(config["output_path"], dfs, wait_for=dfs)
 
 
-@flow(
-    name="Core",
-    task_runner=DaskTaskRunner,
-    persist_result=False
-)
+@flow(name="Core", task_runner=DaskTaskRunner, persist_result=False)
 def workflow_core(fnames: List[str], config: dict):
     """Subflow for all image based tasks."""
     # Config
@@ -139,7 +134,7 @@ def workflow_core(fnames: List[str], config: dict):
     name="Koopa",
     version=koopa.__version__,
     task_runner=DaskTaskRunner,
-    persist_result=False
+    persist_result=False,
 )
 def workflow(config_path: str):
     """Core koopa workflow.

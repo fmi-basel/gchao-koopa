@@ -397,7 +397,7 @@ def create_default_config() -> configparser.ConfigParser:
 def __validate_pathlike(value: os.PathLike, name: str) -> None:
     """Validate path inputs."""
     if not os.path.exists(value):
-        raise ValueError(f'Path for {name} must exist, "{value}" does not.')
+        raise ValueError(f'Path "{name}" must exist, "{value}" does not.')
     # pardir = os.path.abspath(os.path.join(value, os.pardir))
 
 

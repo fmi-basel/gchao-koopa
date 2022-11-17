@@ -12,13 +12,16 @@ def merge_single(fname: str, path: os.PathLike, config: dict):
 
     # Input
     fname_segmaps = {
-        "nuclei": os.path.join(path, "segmentation_nuclei", f"{fname}.tif"),
-        "cyto": os.path.join(path, "segmentation_cyto", f"{fname}.tif"),
-        **{
-            f"other_c{i}": os.path.join(path, f"segmentation_c{i}", f"{fname}.tif")
-            for i in config["sego_channels"]
-        },
+        f"other_c{i}": os.path.join(path, f"segmentation_c{i}", f"{fname}.tif")
+        for i in config["sego_channels"]
     }
+    if config["selection"] in ("both", "nuclei"):
+        fname_segmaps["nuclei"] = os.path.join(
+            path, "segmentation_nuclei", f"{fname}.tif"
+        )
+    if config["selection"] in ("both", "cyto"):
+        fname_segmaps["cyto"] = os.path.join(path, "segmentation_cyto", f"{fname}.tif")
+
     segmaps = {k: koopa.io.load_image(v) for k, v in fname_segmaps.items()}
     df = koopa.util.get_final_spot_file(fname, path, config)
 
