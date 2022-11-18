@@ -6,7 +6,7 @@ import koopa
 
 
 @task(name="Configuration")
-def configuration(path: os.PathLike):
+def configuration(path: os.PathLike, force: bool):
     logger = get_run_logger()
 
     # Parse configuration
@@ -19,12 +19,23 @@ def configuration(path: os.PathLike):
     cfg = koopa.config.add_versioning(cfg)
     fname_config = os.path.join(config["output_path"], "koopa.cfg")
     koopa.io.save_config(fname_config, cfg)
+
+    config["force"] = force
     return config
 
 
 @task(name="Align")
 def align(path_in: os.PathLike, path_out: os.PathLike, config: dict):
     """Registration for camera or chromatic aberation alignment."""
+    # Config
+    fname_pre = os.path.join(path_out, "alignment_pre.tif")
+    fname_post = os.path.join(path_out, "alignment_post.tif")
+    fname_matrix = os.path.join(path_out, "alignment.npy")
+    if not config["force"] and all(
+        os.path.exists(i) for i in (fname_pre, fname_post, fname_matrix)
+    ):
+        return
+
     # Input
     images_reference, images_transform = koopa.align.load_alignment_images(
         path_in, config["channel_reference"], config["channel_transform"]
@@ -44,9 +55,6 @@ def align(path_in: os.PathLike, path_out: os.PathLike, config: dict):
     sr = koopa.align.get_stackreg(matrix)
 
     # Save
-    fname_pre = os.path.join(path_out, "alignment_pre.tif")
-    fname_post = os.path.join(path_out, "alignment_post.tif")
-    fname_matrix = os.path.join(path_out, "alignment.npy")
     koopa.align.visualize_alignment(
         sr, images_reference[0], images_transform[0], fname_pre, fname_post
     )
@@ -56,10 +64,14 @@ def align(path_in: os.PathLike, path_out: os.PathLike, config: dict):
 @task(name="Preprocess")
 def preprocess(fname: str, path: str, config: dict):
     """Task to open, trim, and align images."""
+    # Config
     logger = get_run_logger()
+    fname_in = koopa.io.find_full_path(config["input_path"], fname, config["file_ext"])
+    fname_out = os.path.join(path, "preprocessed", f"{fname}.tif")
+    if not config["force"] and os.path.exists(fname_out):
+        return
 
     # Input
-    fname_in = koopa.io.find_full_path(config["input_path"], fname, config["file_ext"])
     image = koopa.io.load_raw_image(fname_in, config["file_ext"])
 
     # Run
@@ -85,5 +97,4 @@ def preprocess(fname: str, path: str, config: dict):
     logger.debug(f"Preprocessed {fname}")
 
     # Save
-    fname_out = os.path.join(path, "preprocessed", f"{fname}.tif")
     koopa.io.save_image(fname_out, image)

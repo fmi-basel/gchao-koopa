@@ -7,11 +7,15 @@ import koopa
 
 @task(name="Spots (Detect)", tags=["GPU"])
 def detect(fname: str, path: os.PathLike, index_list: int, config: dict):
+    # Config
     logger = get_run_logger()
-
-    # Input
     index_channel = config["detect_channels"][index_list]
     fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
+    fname_out = os.path.join(path, f"detection_raw_c{index_channel}", f"{fname}.parq")
+    if not config["force"] and os.path.exists(fname_out):
+        return
+
+    # Input
     image = koopa.io.load_image(fname_image)
     model = pink.io.load_model(config["detect_models"][index_channel])
     logger.info(f"Loaded input for {fname}")
@@ -23,14 +27,18 @@ def detect(fname: str, path: os.PathLike, index_list: int, config: dict):
     df.insert(loc=0, column="FileID", value=fname)
 
     # Save
-    fname_out = os.path.join(path, f"detection_raw_c{index_channel}", f"{fname}.parq")
     koopa.io.save_parquet(fname_out, df)
 
 
 @task(name="Spots (Track)")
 def track(fname: str, path: os.PathLike, index_channel: int, config: dict):
-    # Input
+    # Config
     fname_spots = os.path.join(path, f"detection_raw_c{index_channel}", f"{fname}.parq")
+    fname_out = os.path.join(path, f"detection_final_c{index_channel}", f"{fname}.parq")
+    if not config["force"] and os.path.exists(fname_out):
+        return
+
+    # Input
     df = koopa.io.load_parquet(fname_spots)
 
     # Run
@@ -44,7 +52,6 @@ def track(fname: str, path: os.PathLike, index_channel: int, config: dict):
     track = koopa.track.clean_particles(track)
 
     # Save
-    fname_out = os.path.join(path, f"detection_final_c{index_channel}", f"{fname}.parq")
     koopa.io.save_parquet(fname_out, track)
 
 
@@ -56,10 +63,9 @@ def colocalize_frame(
     index_transform: int,
     config: dict,
 ):
+    # Config
     logger = get_run_logger()
     logger.info(f"Colocalizing {index_reference}<-{index_transform}")
-
-    # Input
     folder = "final" if config["do_3d"] else "raw"
     fname_reference = os.path.join(
         path, f"detection_{folder}_c{index_reference}", f"{fname}.parq"
@@ -67,11 +73,16 @@ def colocalize_frame(
     fname_transform = os.path.join(
         path, f"detection_{folder}_c{index_transform}", f"{fname}.parq"
     )
+    name = f"{index_reference}-{index_transform}"
+    fname_out = os.path.join(path, f"colocalization_{name}", f"{fname}.parq")
+    if not config["force"] and os.path.exists(fname_out):
+        return
+
+    # Input
     df_reference = koopa.io.load_parquet(fname_reference)
     df_transform = koopa.io.load_parquet(fname_transform)
 
     # Run
-    name = f"{index_reference}-{index_transform}"
     df = koopa.colocalize.colocalize_frames(
         df_reference,
         df_transform,
@@ -81,7 +92,6 @@ def colocalize_frame(
     )
 
     # Save
-    fname_out = os.path.join(path, f"colocalization_{name}", f"{fname}.parq")
     koopa.io.save_parquet(fname_out, df)
 
 
@@ -93,25 +103,28 @@ def colocalize_track(
     index_transform: int,
     config: dict,
 ):
+    # Config
     logger = get_run_logger()
     logger.info(f"Colocalizing {index_reference}<-{index_transform}")
-
-    # Input
     fname_reference = os.path.join(
         path, f"detection_final_c{index_reference}", f"{fname}.parq"
     )
     fname_transform = os.path.join(
         path, f"detection_final_c{index_transform}", f"{fname}.parq"
     )
+    name = f"{index_reference}-{index_transform}"
+    fname_out = os.path.join(path, f"colocalization_{name}", f"{fname}.parq")
+    if not config["force"] and os.path.exists(fname_out):
+        return
+
+    # Input
     df_reference = koopa.io.load_parquet(fname_reference)
     df_transform = koopa.io.load_parquet(fname_transform)
 
     # Run
-    name = f"{index_reference}-{index_transform}"
     df = koopa.colocalize.colocalize_tracks(
         df_reference, df_transform, config["min_frames"], config["distance_cutoff"]
     )
 
     # Save
-    fname_out = os.path.join(path, f"colocalization_{name}", f"{fname}.parq")
     koopa.io.save_parquet(fname_out, df)
