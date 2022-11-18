@@ -163,8 +163,8 @@ class KoopaWidget(QWidget):
 
         self.config = configparser.ConfigParser()
         self.config.read(config_file)
-        self.do_timeseries = eval(self.config["General"]["do_TimeSeries"])
-        self.do_3D = eval(self.config["General"]["do_3D"])
+        self.do_timeseries = eval(self.config["General"]["do_timeseries"])
+        self.do_3d = eval(self.config["General"]["do_3d"])
 
     def load_file(self):
         """Open all associated files and enable editing."""
@@ -182,14 +182,14 @@ class KoopaWidget(QWidget):
         # Segmaps
         self.load_segmentation_cells()
         self.pbar.setValue(50)
-        if eval(self.config["SegmentationOther"]["enabled"]):
+        if eval(self.config["SegmentationOther"]["sego_enabled"]):
             self.load_segmentation_other()
         self.pbar.setValue(75)
 
         # Points
         self.load_detection_raw()
         self.pbar.setValue(85)
-        if eval(self.config["SpotsColocalization"]["enabled"]):
+        if eval(self.config["SpotsColocalization"]["coloc_enabled"]):
             self.load_colocalization()
         self.pbar.setValue(100)
 
@@ -215,7 +215,7 @@ class KoopaWidget(QWidget):
             channel = int(layer.name.lstrip("Detection C"))
             folder = (
                 f"detection_final_c{channel}"
-                if self.do_3D
+                if self.do_3d
                 else f"detection_raw_c{channel}"
             )
             fname = os.path.join(
@@ -231,20 +231,20 @@ class KoopaWidget(QWidget):
                 mode="constant",
                 constant_values=0,
             )
-            zyx = layer.data if self.do_3D else layer.data[:, 1:]
+            zyx = layer.data if self.do_3d else layer.data[:, 1:]
             df = tp.refine_com(
                 raw_image=image,
                 image=image,
                 radius=refinement_radius,
                 coords=zyx + refinement_radius,
             )
-            df["x"] = zyx.T[2] if self.do_3D else zyx.T[1]
-            df["y"] = zyx.T[1] if self.do_3D else zyx.T[0]
+            df["x"] = zyx.T[2] if self.do_3d else zyx.T[1]
+            df["y"] = zyx.T[1] if self.do_3d else zyx.T[0]
             df = df.drop("raw_mass", axis=1)
-            df["frame"] = layer.data.T[0] if self.do_3D else 0
+            df["frame"] = layer.data.T[0] if self.do_3d else 0
             df["channel"] = channel
             df.insert(loc=0, column="FileID", value=self.name)
-            if self.do_3D:
+            if self.do_3d:
                 df["particle"] = df.index.values + 1
             df.to_parquet(fname)
 
@@ -331,7 +331,7 @@ class KoopaWidget(QWidget):
 
     def load_segmentation_other(self):
         """Open and display additional segmentation maps."""
-        for channel in eval(self.config["SegmentationOther"]["channels"]):
+        for channel in eval(self.config["SegmentationOther"]["sego_channels"]):
             fname = os.path.join(
                 self.analysis_path,
                 f"segmentation_{channel}",
@@ -345,10 +345,10 @@ class KoopaWidget(QWidget):
     def load_detection_raw(self):
         """Open and display raw spot detection points."""
 
-        for channel in eval(self.config["SpotsDetection"]["channels"]):
+        for channel in eval(self.config["SpotsDetection"]["detect_channels"]):
             folder = (
                 f"detection_final_c{channel}"
-                if self.do_3D or self.do_timeseries
+                if self.do_3d or self.do_timeseries
                 else f"detection_raw_c{channel}"
             )
             fname = os.path.join(
@@ -372,7 +372,7 @@ class KoopaWidget(QWidget):
     def load_colocalization(self):
         """Open and display colocalization pairs (colocalized vs. non)."""
 
-        for i, j in eval(self.config["SpotsColocalization"]["channels"]):
+        for i, j in eval(self.config["SpotsColocalization"]["coloc_channels"]):
             fname = os.path.join(
                 self.analysis_path,
                 f"colocalization_{i}-{j}",
