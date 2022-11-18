@@ -69,7 +69,7 @@ class DeepSegmentation:
 
 def segment(image: np.ndarray, index_list: int, config: dict) -> np.ndarray:
     """Segment marker labels with pre-trained model or traditionally."""
-    method = config["sego_channels"][index_list]
+    method = config["sego_methods"][index_list]
     methods = ["deep", "otsu", "li", "multiotsu"]
     if method not in methods:
         raise ValueError(

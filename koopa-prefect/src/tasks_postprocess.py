@@ -14,12 +14,13 @@ def merge_single(fname: str, path: os.PathLike, config: dict):
     fname_segmaps = {
         f"other_c{i}": os.path.join(path, f"segmentation_c{i}", f"{fname}.tif")
         for i in config["sego_channels"]
+        if config["sego_enabled"]
     }
-    if config["selection"] in ("both", "nuclei"):
+    if config["brains_enabled"] or config["selection"] in ("both", "nuclei"):
         fname_segmaps["nuclei"] = os.path.join(
             path, "segmentation_nuclei", f"{fname}.tif"
         )
-    if config["selection"] in ("both", "cyto"):
+    if not config["brains_enabled"] and config["selection"] in ("both", "cyto"):
         fname_segmaps["cyto"] = os.path.join(path, "segmentation_cyto", f"{fname}.tif")
 
     segmaps = {k: koopa.io.load_image(v) for k, v in fname_segmaps.items()}

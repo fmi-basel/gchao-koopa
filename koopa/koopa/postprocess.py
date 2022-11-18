@@ -54,7 +54,7 @@ def add_segmentation_data(
 ) -> pd.DataFrame:
     """Combine information from segmaps with spots-dataframe."""
     # Config
-    selection = config["selection"]
+    selection = "nuclei" if config["brains_enabled"] else config["selection"]
     cell_id = "nuclei" if selection == "nuclei" else "cyto"
     full_selection = ("cyto", "nuclei") if selection == "both" else (selection,)
 
@@ -81,7 +81,8 @@ def add_segmentation_data(
         )
 
     # Other segmentation
-    for name, segmap in {k: v for k, v in segmaps.items() if "other" in k}:
-        df[name] = df.apply(lambda row: get_value(row, segmap), axis=1).astype(bool)
+    for name, segmap in segmaps.items():
+        if "other" in name:
+            df[name] = df.apply(lambda row: get_value(row, segmap), axis=1).astype(bool)
 
     return df
