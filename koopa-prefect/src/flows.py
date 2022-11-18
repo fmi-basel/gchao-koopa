@@ -139,10 +139,24 @@ def workflow(config_path: str, force: bool = False):
     koopa.util.configure_gpu(False)
 
     # File independent tasks
-    config = tasks_preprocess.configuration(config_path)
+    config = tasks_preprocess.configuration(config_path, force)
     file_independent(config)
 
     # Workflow
     fnames = koopa.util.get_file_list(config["input_path"], config["file_ext"])
-    workflow_core(fnames, config)
+    kwargs = dict(path=unmapped(config["output_path"]), config=unmapped(config))
+
+    # Preprocess
+    preprocess = tasks_preprocess.preprocess.map(fnames, **kwargs)
+
+    # Segmentation
+    seg_cells = cell_segmentation(fnames, config, kwargs, dependencies=preprocess)
+    seg_other = other_segmentation(fnames, config, kwargs, dependencies=preprocess)
+
+    # Spots
+    spots = spot_detection(fnames, config, kwargs, dependencies=preprocess)
+    spots = colocalization(fnames, config, kwargs, dependencies=spots)
+
+    # Merge
+    merging(fnames, config, kwargs, dependencies=[*spots, *seg_cells, *seg_other])
     logger.info("Koopa finished analyzing everything!")
