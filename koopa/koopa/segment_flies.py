@@ -23,7 +23,7 @@ def cellpose_predict(image: np.ndarray, batch_size: int = 4) -> np.ndarray:
     model.batch_size = batch_size
 
     image = cellpose.transforms.convert_image(
-        image, [[0, 0]], do_3d=True, normalize=False
+        image, [[0, 0]], do_3D=True, normalize=False
     )
 
     if image.ndim < 4:
@@ -44,7 +44,7 @@ def merge_masks(yf: np.ndarray) -> np.ndarray:
     dP = np.stack(
         (yf[1][0] + yf[2][0], yf[0][0] + yf[2][1], yf[0][1] + yf[1][1]), axis=0
     )  # (dZ, dY, dX)
-    masks, *_ = cellpose.dynamics.compute_masks(dP, dist, do_3d=True)
+    masks, *_ = cellpose.dynamics.compute_masks(dP, dist, do_3D=True)
     return masks.squeeze()
 
 
