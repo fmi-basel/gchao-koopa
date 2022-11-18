@@ -36,7 +36,13 @@ def cell_segmentation(
     fnames: List[str], config: dict, kwargs: dict, dependencies: list
 ):
     if not config["brains_enabled"]:
-        return tasks_segment.segment_cells.map(fnames, **kwargs, wait_for=dependencies)
+        if config["selection"] == "both":
+            return tasks_segment.segment_cells_both.map(
+                fnames, **kwargs, wait_for=dependencies
+            )
+        return tasks_segment.segment_cells_single.map(
+            fnames, **kwargs, wait_for=dependencies
+        )
 
     brain_1 = tasks_segment.segment_cells_predict.map(
         fnames, **kwargs, wait_for=dependencies
@@ -109,35 +115,22 @@ def merging(fnames: List[str], config: dict, kwargs: dict, dependencies: list):
     tasks_postprocess.merge_all.submit(config["output_path"], dfs, wait_for=dfs)
 
 
-@flow(name="Core", task_runner=DaskTaskRunner, persist_result=False)
-def workflow_core(fnames: List[str], config: dict):
-    """Subflow for all image based tasks."""
-    # Config
-    kwargs = dict(path=unmapped(config["output_path"]), config=unmapped(config))
-
-    # Preprocess
-    preprocess = tasks_preprocess.preprocess.map(fnames, **kwargs)
-
-    # Segmentation
-    seg_cells = cell_segmentation(fnames, config, kwargs, dependencies=preprocess)
-    seg_other = other_segmentation(fnames, config, kwargs, dependencies=preprocess)
-
-    # Spots
-    spots = spot_detection(fnames, config, kwargs, dependencies=preprocess)
-    spots = colocalization(fnames, config, kwargs, dependencies=spots)
-
-    # Merge
-    merging(fnames, config, kwargs, dependencies=[*spots, *seg_cells, *seg_other])
-
-
 @flow(
     name="Koopa",
     version=koopa.__version__,
     task_runner=DaskTaskRunner,
     persist_result=False,
 )
-def workflow(config_path: str):
+def workflow(config_path: str, force: bool = False):
     """Core koopa workflow.
+
+    Arguments:
+        * config_path: Path to koopa configuration file.
+            Path must be passed linux-compatible (e.g. /tungstenfs/scratch/...).
+            The default configuration file can be viewed and downloaded [here](https://github.com/BBQuercus/koopa/blob/main/koopa-prefect/koopa.cfg).
+
+        * force: If selected, the entire workflow will be re-run.
+            Otherwise, only the not yet executed components (missing files) are run.
 
     All documentation can be found on the koopa wiki (https://github.com/BBQuercus/koopa/wiki).
     """

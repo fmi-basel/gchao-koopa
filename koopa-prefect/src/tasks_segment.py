@@ -4,44 +4,71 @@ from prefect import task
 import koopa
 
 
-@task(name="Segment Cells", description="")
-def segment_cells(fname: str, path: os.PathLike, config: dict):
-    # Input
+@task(name="Segment Cells (Single)")
+def segment_cells_single(fname: str, path: os.PathLike, config: dict):
+    # Config
+    selection = config["selection"]
     fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
+    fname_out = os.path.join(path, f"segmentation_{selection}", f"{fname}.tif")
+    if not config["force"] and os.path.exists(fname_out):
+        return
+
+    # Input
     image = koopa.io.load_image(fname_image)
+    image = image[config[f"channel_{selection}"]]
+    if not config["do_3d"] and config["do_timeseries"]:
+        image = koopa.segment_cells.preprocess(image)
 
     # Run
+    if selection == "nuclei":
+        segmap = koopa.segment_cells.segment_nuclei(image, config)
+    else:
+        segmap = koopa.segment_cells.segment_cyto(image, config)
+
+    # Save
+    koopa.io.save_image(fname_out, segmap)
+
+
+@task(name="Segment Cells (Both)")
+def segment_cells_both(fname: str, path: os.PathLike, config: dict):
+    # Config
+    fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
+    fname_nuclei = os.path.join(path, "segmentation_nuclei", f"{fname}.tif")
+    fname_cyto = os.path.join(path, "segmentation_cyto", f"{fname}.tif")
+    if (
+        not config["force"]
+        and os.path.exists(fname_nuclei)
+        and os.path.exists(fname_cyto)
+    ):
+        return
+
+    # Input
+    image = koopa.io.load_image(fname_image)
     image_nuclei = image[config["channel_nuclei"]]
     image_cyto = image[config["channel_cyto"]]
     if not config["do_3d"] and config["do_timeseries"]:
         image_nuclei = koopa.segment_cells.preprocess(image_nuclei)
         image_cyto = koopa.segment_cells.preprocess(image_cyto)
 
-    # Single output
-    selection = config["selection"]
-    if selection == "nuclei":
-        segmap = koopa.segment_cells.segment_nuclei(image_nuclei, config)
-    if selection == "cyto":
-        segmap = koopa.segment_cells.segment_cyto(image_cyto, config)
-    if selection in ("nuclei", "cyto"):
-        fname_out = os.path.join(path, f"segmentation_{selection}", f"{fname}.tif")
-        koopa.io.save_image(fname_out, segmap)
+    # Run
+    segmap_nuclei, segmap_cyto = koopa.segment_cells.segment_both(
+        image_nuclei, image_cyto, config
+    )
 
-    # Dual output
-    if selection == "both":
-        segmap_nuclei, segmap_cyto = koopa.segment_cells.segment_both(
-            image_nuclei, image_cyto, config
-        )
-        fname_cyto = os.path.join(path, "segmentation_cyto", f"{fname}.tif")
-        fname_nuclei = os.path.join(path, "segmentation_nuclei", f"{fname}.tif")
-        koopa.io.save_image(fname_cyto, segmap_cyto)
-        koopa.io.save_image(fname_nuclei, segmap_nuclei)
+    # Save
+    koopa.io.save_image(fname_cyto, segmap_cyto)
+    koopa.io.save_image(fname_nuclei, segmap_nuclei)
 
 
 @task(name="Segment Cells (Predict)", tags=["GPU"])
 def segment_cells_predict(fname: str, path: os.PathLike, config: dict):
-    # Input
+    # Config
     fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
+    fname_out = os.path.join(path, "segmentation_nuclei_prediction", f"{fname}.tif")
+    if not config["force"] and os.path.exists(fname_out):
+        return
+
+    # Input
     image = koopa.io.load_image(fname_image)
 
     # Run
@@ -49,15 +76,19 @@ def segment_cells_predict(fname: str, path: os.PathLike, config: dict):
     segmap = koopa.segment_flies.cellpose_predict(image, config["batch_size"])
 
     # Save
-    fname_out = os.path.join(path, "segmentation_nuclei_prediction", f"{fname}.tif")
     koopa.io.save_image(fname_out, segmap)
 
 
 @task(name="Segment Cells (Merge)")
 def segment_cells_merge(fname: str, path: os.PathLike, config: dict):
-    # Input
+    # Config
     fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
     fname_pred = os.path.join(path, "segmentation_nuclei_prediction", f"{fname}.tif")
+    fname_out = os.path.join(path, "segmentation_nuclei_merge", f"{fname}.tif")
+    if not config["force"] and os.path.exists(fname_out):
+        return
+
+    # Input
     image = koopa.io.load_image(fname_image)[config["brains_channel"]]
     yf = koopa.io.load_image(fname_pred)
 
@@ -72,29 +103,37 @@ def segment_cells_merge(fname: str, path: os.PathLike, config: dict):
     )
 
     # Save
-    fname_out = os.path.join(path, "segmentation_nuclei_merge", f"{fname}.tif")
     koopa.io.save_image(fname_out, segmap)
 
 
 @task(name="Segment Cells (Dilate)")
 def dilate_cells(fname: str, path: os.PathLike, config: dict):
-    # Input
+    # Config
     fname_segmap = os.path.join(path, "segmentation_nuclei_merge", f"{fname}.tif")
+    fname_out = os.path.join(path, "segmentation_nuclei", f"{fname}.tif")
+    if not config["force"] and os.path.exists(fname_out):
+        return
+
+    # Input
     segmap = koopa.io.load_image(fname_segmap)
 
     # Run
     dilated = koopa.segment_flies.dilate_segmap(segmap, dilation=config["dilation"])
 
     # Save
-    fname_out = os.path.join(path, "segmentation_nuclei", f"{fname}.tif")
     koopa.io.save_image(fname_out, dilated)
 
 
 @task(name="Segment Other", description="")
 def segment_other(fname: str, path: os.PathLike, index_list: int, config: dict):
-    # Input
-    index_channel = config["detect_channels"][index_list]
+    # Config
+    index_channel = config["sego_channels"][index_list]
     fname_image = os.path.join(path, "preprocessed", f"{fname}.tif")
+    fname_out = os.path.join(path, f"segmentation_c{index_channel}", f"{fname}.tif")
+    if not config["force"] and os.path.exists(fname_out):
+        pass
+
+    # Input
     image = koopa.io.load_image(fname_image)
 
     # Run
@@ -103,5 +142,4 @@ def segment_other(fname: str, path: os.PathLike, index_list: int, config: dict):
     )
 
     # Save
-    fname_out = os.path.join(path, f"segmentation_c{index_channel}", f"{fname}.tif")
     koopa.io.save_image(fname_out, segmap)
