@@ -49,31 +49,26 @@ def get_cell_properties(segmap: np.ndarray, name: str, do_3d: bool) -> pd.DataFr
     return df
 
 
-def add_segmentation_data(
+def get_segmentation_data(
     df: pd.DataFrame, segmaps: Dict[str, np.ndarray], config: dict
 ) -> pd.DataFrame:
     """Combine information from segmaps with spots-dataframe."""
     # Config
     selection = "nuclei" if config["brains_enabled"] else config["selection"]
-    cell_id = "nuclei" if selection == "nuclei" else "cyto"
     full_selection = ("cyto", "nuclei") if selection == "both" else (selection,)
+    cell_id = "nuclei" if selection == "nuclei" else "cyto"
+    if df["FileID"].nunique() != 1:
+        raise ValueError("Spot files corrupted. Can only contain data from one image.")
 
     # Cellular segmentation
     df["cell_id"] = df.apply(lambda row: get_value(row, segmaps[cell_id]), axis=1)
-    df["num_cells"] = len(np.unique(segmaps[cell_id])) - 1
 
+    df_cell = pd.DataFrame()
     for select in full_selection:
-        df_cell = get_cell_properties(segmaps[select], select, config["do_3d"])
-        df = pd.merge(df, df_cell, how="left", on="cell_id").fillna(0)
-
-        # Border distance
-        if config["border_distance"]:
-            df[f"distance_from_{selection}"] = get_distance_from_segmap(
-                df, segmaps[selection]
-            )
-
-    if not len(df):
-        return df
+        df_props = get_cell_properties(segmaps[select], select, config["do_3d"])
+        df_cell = pd.concat([df_cell, df_props], axis=1)
+        df_cell = df_cell.loc[:, ~df_cell.columns.duplicated()]
+    df_cell.insert(0, "FileID", df["FileID"].unique()[0])
 
     if selection == "both":
         df["nuclear"] = df.apply(
@@ -85,4 +80,10 @@ def add_segmentation_data(
         if "other" in name:
             df[name] = df.apply(lambda row: get_value(row, segmap), axis=1).astype(bool)
 
-    return df
+    # TODO add properly
+    # # Border distance
+    # if config["border_distance"]:
+    #     df[f"distance_from_{selection}"] = get_distance_from_segmap(
+    #         df, segmaps[selection]
+    #     )
+    return df, df_cell
