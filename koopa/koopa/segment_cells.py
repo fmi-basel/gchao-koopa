@@ -13,8 +13,10 @@ import skimage.morphology
 import skimage.segmentation
 
 
-def preprocess(image: np.ndarray) -> np.ndarray:
-    return np.mean(image, axis=0).astype(np.uint16)
+def relabel_array(image: np.ndarray, mapping: dict) -> np.ndarray:
+    """Label an image array based on a input->output map."""
+    new_image = [np.where(image == key, value, 0) for key, value in mapping.items()]
+    return np.max(new_image, axis=0)
 
 
 def segment_otsu(
@@ -76,11 +78,11 @@ def remove_border_objects(image: np.ndarray) -> np.ndarray:
     for prop in skimage.measure.regionprops(image):
         if bool(shape & {*prop.bbox}):
             image = np.where(image == prop.label, 0, image)
-    return skimage.measure.label(image)
+    return image
 
 
 def segment_background(
-    image: np.ndarray, method: str, upper_clip: int, gaussian: int
+    image: np.ndarray, method: str, upper_clip: int, gaussian: int, min_size: int
 ) -> np.ndarray:
     """Segmentation of the channel of interest."""
     image = np.clip(image, 0, np.quantile(image, upper_clip))
@@ -99,6 +101,9 @@ def segment_background(
         image = image > skimage.filters.threshold_li(image)
     if method == "triangle":
         image = image > skimage.filters.threshold_triangle(image)
+
+    image = skimage.morphology.remove_small_objects(image, min_size=min_size)
+    image = skimage.morphology.remove_small_holes(image, area_threshold=min_size)
     return image
 
 
@@ -147,11 +152,23 @@ def segment_both(
         method=config["method_cyto"],
         upper_clip=config["upper_clip"],
         gaussian=config["gaussian"],
+        min_size=config["min_size_cyto"],
     )
     segmap_cyto = skimage.segmentation.watershed(
-        image=~segmap_cyto,
+        image=~image_cyto,
         markers=segmap_nuclei,
         mask=segmap_cyto,
         watershed_line=True,
     )
+
+    # Remove objects and keep nuclei/cyto pairing in order
+    if config["remove_border"]:
+        segmap_cyto = remove_border_objects(segmap_cyto)
+        nuclei_to_keep = set(np.unique(segmap_nuclei)).intersection(
+            set(np.unique(segmap_cyto))
+        )
+        mapping = {nuc: idx for idx, nuc in enumerate(nuclei_to_keep)}
+        segmap_nuclei = relabel_array(segmap_nuclei, mapping)
+        segmap_cyto = relabel_array(segmap_cyto, mapping)
+
     return segmap_nuclei, segmap_cyto

@@ -269,9 +269,10 @@ segmentation_cells = {
     "min_size_cyto": ConfigItem(
         description=(
             "Minimum object size - to filter out possible debris. "
+            "Don't set too large if medium-sized blobs should be kept. "
             "Only if method is otsu."
         ),
-        default=5000,
+        default=128,
         dtype=int,
     ),
     "min_distance": ConfigItem(
@@ -283,7 +284,10 @@ segmentation_cells = {
         dtype=int,
     ),
     "remove_border": ConfigItem(
-        description="Should segmentation maps touching the border be removed?",
+        description=(
+            "Should segmentation maps touching the border be removed? "
+            "Currently only implemented if selection is both!"
+        ),
         default=True,
         dtype=bool,
     ),

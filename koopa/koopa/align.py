@@ -15,7 +15,7 @@ import skimage.io
 def align_image(
     image: np.ndarray, sr: pystackreg.StackReg, index_transforms: List[int]
 ) -> np.ndarray:
-    """Align a stack of images (two channels only)."""
+    """Align a stack of images."""
     for idx in index_transforms:
         if image.ndim == 3:
             image[idx] = sr.transform(image[idx])
