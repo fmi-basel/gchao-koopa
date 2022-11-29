@@ -28,6 +28,20 @@ class KoopaWidget(QWidget):
         self.viewer = napari_viewer
         self.spots_cols = ["frame", "y", "x"]
         self.track_cols = ["particle", "frame", "y", "x"]
+        self.params = [
+            "blending",
+            "color_mode",
+            "colormap",
+            "contour",
+            "contrast_limits",
+            "face_color",
+            "gamma",
+            "opacity",
+            "out_of_slice_display",
+            "size",
+            "symbol",
+            "visible",
+        ]
 
         # Viewer model params - https://napari.org/stable/api/napari.Viewer
         self.image_params = dict(blending="additive")
@@ -59,7 +73,7 @@ class KoopaWidget(QWidget):
     def setup_logo_header(self):
         widget = QWidget()
         widget.setLayout(QHBoxLayout())
-        widget.layout().addWidget(QLabel(f"<h1>Koopa</h1>"))
+        widget.layout().addWidget(QLabel("<h1>Koopa</h1>"))
         widget.layout().addWidget(
             QLabel("Keenly optimized obliging picture analysis.")
         )
@@ -128,12 +142,12 @@ class KoopaWidget(QWidget):
         hideall_widget.clicked.connect(self.hide_layers)
         widget.layout().addWidget(hideall_widget)
 
-        contrast_save_widget = QPushButton("Save Contrast")
-        contrast_save_widget.clicked.connect(self.save_contrast)
-        widget.layout().addWidget(contrast_save_widget)
-        contrast_apply_widget = QPushButton("Apply Contrast")
-        contrast_apply_widget.clicked.connect(self.apply_contrast)
-        widget.layout().addWidget(contrast_apply_widget)
+        settings_save_widget = QPushButton("Save Settings")
+        settings_save_widget.clicked.connect(self.save_settings)
+        widget.layout().addWidget(settings_save_widget)
+        settings_apply_widget = QPushButton("Apply Settings")
+        settings_apply_widget.clicked.connect(self.apply_settings)
+        widget.layout().addWidget(settings_apply_widget)
         self.layout().addWidget(widget)
 
     def setup_progress_bar(self):
@@ -195,59 +209,60 @@ class KoopaWidget(QWidget):
 
         self.save_widget.setDisabled(False)
 
+    def save_labels_layer(self, layer):
+        if layer.name == "Segmentation Cyto":
+            folder = "segmentation_cyto"
+        elif layer.name == "Segmentation Nuclei":
+            folder = "segmentation_nuclei"
+        else:
+            folder = f"segmentation_c{layer.name.lstrip('Segmentation C')}"
+        fname = os.path.join(self.analysis_path, folder, f"{self.name}.tif")
+        skimage.io.imsave(fname, layer.data, check_contrast=False)
+
+    def save_points_layer(self, layer):
+        channel = int(layer.name.lstrip("Detection C"))
+
+        # Update spots df
+        refinement_radius = eval(
+            self.config["SpotsDetection"]["refinement_radius"]
+        )
+        image = np.pad(
+            self.image[channel],
+            refinement_radius + 1,
+            mode="constant",
+            constant_values=0,
+        )
+        zyx = layer.data if self.do_3d else layer.data[:, 1:]
+        df = tp.refine_com(
+            raw_image=image,
+            image=image,
+            radius=refinement_radius,
+            coords=zyx + refinement_radius,
+        )
+        df["x"] = zyx.T[2] if self.do_3d else zyx.T[1]
+        df["y"] = zyx.T[1] if self.do_3d else zyx.T[0]
+        df = df.drop("raw_mass", axis=1)
+        df["frame"] = layer.data.T[0] if self.do_3d else 0
+        df["channel"] = channel
+        df.insert(loc=0, column="FileID", value=self.name)
+        if self.do_3d:
+            df["particle"] = df.index.values + 1
+
+        # Save
+        folder = (
+            f"detection_final_c{channel}"
+            if self.do_3d
+            else f"detection_raw_c{channel}"
+        )
+        fname = os.path.join(self.analysis_path, folder, f"{self.name}.parq")
+        df.to_parquet(fname)
+
     def save_edits(self):
         for layer in self.viewer.layers:
             if isinstance(layer, napari.layers.labels.labels.Labels):
-                if layer.name == "Segmentation Cyto":
-                    folder = "segmentation_cyto"
-                elif layer.name == "Segmentation Nuclei":
-                    folder = "segmentation_nuclei"
-                else:
-                    folder = (
-                        f"segmentation_c{layer.name.lstrip('Segmentation C')}"
-                    )
-                fname = os.path.join(
-                    self.analysis_path, folder, f"{self.name}.tif"
-                )
-                skimage.io.imsave(fname, layer.data, check_contrast=False)
-
-        if isinstance(layer, napari.layers.points.points.Points):
-            channel = int(layer.name.lstrip("Detection C"))
-            folder = (
-                f"detection_final_c{channel}"
-                if self.do_3d
-                else f"detection_raw_c{channel}"
-            )
-            fname = os.path.join(
-                self.analysis_path, folder, f"{self.name}.parq"
-            )
-
-            refinement_radius = eval(
-                self.config["SpotsDetection"]["refinement_radius"]
-            )
-            image = np.pad(
-                self.image[channel],
-                refinement_radius + 1,
-                mode="constant",
-                constant_values=0,
-            )
-            zyx = layer.data if self.do_3d else layer.data[:, 1:]
-            df = tp.refine_com(
-                raw_image=image,
-                image=image,
-                radius=refinement_radius,
-                coords=zyx + refinement_radius,
-            )
-            df["x"] = zyx.T[2] if self.do_3d else zyx.T[1]
-            df["y"] = zyx.T[1] if self.do_3d else zyx.T[0]
-            df = df.drop("raw_mass", axis=1)
-            df["frame"] = layer.data.T[0] if self.do_3d else 0
-            df["channel"] = channel
-            df.insert(loc=0, column="FileID", value=self.name)
-            if self.do_3d:
-                df["particle"] = df.index.values + 1
-            df.to_parquet(fname)
-
+                self.save_label_layer(layer)
+            if isinstance(layer, napari.layers.points.points.Points):
+                self.save_points_layer(layer)
         napari.utils.notifications.show_info(
             f"Finished saving edits to {self.name}"
         )
@@ -279,27 +294,6 @@ class KoopaWidget(QWidget):
         self.dropdown_widget.clear()
         self.dropdown_widget.addItems(self.files)
 
-    def get_colormap(self, idx):
-        """Find suitable colormap dependent on parameters."""
-        selection = self.config["SegmentationCells"]["selection"]
-        channel_nuclei = eval(
-            self.config["SegmentationCells"]["channel_nuclei"]
-        )
-        channel_cyto = eval(self.config["SegmentationCells"]["channel_cyto"])
-
-        # DAPI blue
-        if (
-            not self.do_timeseries
-            and selection in ["nuclei", "both"]
-            and idx == channel_nuclei
-        ):
-            return "blue"
-
-        # SunTag green
-        if self.do_timeseries and selection == "cyto" and idx == channel_cyto:
-            return "green"
-        return None
-
     def load_image(self):
         """Open and display raw image data."""
         fname = os.path.join(
@@ -308,10 +302,7 @@ class KoopaWidget(QWidget):
         self.image = tifffile.imread(fname)
         for idx, channel in enumerate(self.image):
             self.viewer.add_image(
-                channel,
-                name=f"Channel {idx}",
-                colormap=self.get_colormap(idx),
-                **self.image_params,
+                channel, name=f"Channel {idx}", **self.image_params
             )
 
     def load_segmentation_cells(self):
@@ -427,18 +418,37 @@ class KoopaWidget(QWidget):
         for layer in self.viewer.layers:
             layer.visible = False
 
-    def save_contrast(self):
-        self.contrast_limits = {}
-        for idx, layer in enumerate(self.viewer.layers):
-            if hasattr(layer, "contrast_limits"):
-                self.contrast_limits[idx] = layer.contrast_limits
-        napari.utils.notifications.show_info("Contrast limits saved.")
+    @staticmethod
+    def rgb_to_hex(rgb: np.ndarray):
+        return ("#{:X}{:X}{:X}").format(
+            int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255)
+        )
 
-    def apply_contrast(self):
-        if not hasattr(self, "contrast_limists"):
-            napari.utils.notifications.show_error("No contrast limits saved!")
-            return None
+    def save_settings(self):
+        self.settings = {}
         for idx, layer in enumerate(self.viewer.layers):
-            if idx in self.contrast_limits:
-                layer.contrast_limits = self.contrast_limits[idx]
-        napari.utils.notifications.show_info("Saved contrast limits applies.")
+            layer_settings = {}
+            for param in self.params:
+                if hasattr(layer, param):
+                    # NOTE currently doesn't get set properly via interface
+                    # Bug in napari not in plugin
+                    if param == "face_color":
+                        value = self.rgb_to_hex(layer.face_color[0, :3])
+                    elif param == "size":
+                        value = layer.size[0, 0]
+                    else:
+                        value = getattr(layer, param)
+                    layer_settings[param] = value
+            self.settings[idx] = layer_settings
+        napari.utils.notifications.show_info("Current settings saved.")
+
+    def apply_settings(self):
+        if not hasattr(self, "settings"):
+            napari.utils.notifications.show_error("No settings saved!")
+            return None
+
+        for idx, layer in enumerate(self.viewer.layers):
+            if idx in self.settings:
+                for param, value in self.settings[idx].items():
+                    setattr(layer, param, value)
+        napari.utils.notifications.show_info("Saved settings applied.")
