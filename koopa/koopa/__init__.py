@@ -11,4 +11,4 @@ from . import segment_other
 from . import track
 from . import util
 
-__version__ = "0.0.1"
+__version__ = "0.0.6"

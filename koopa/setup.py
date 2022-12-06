@@ -10,14 +10,14 @@ from setuptools import setup
 setup(
     # Description
     name="koopa",
-    version="0.0.3",
+    version="0.0.6",
     license="MIT",
     description="Workflow for analysis of cellular microscopy data.",
     long_description_content_type="text/plain",
     long_description=textwrap.dedent(
         """Keenly optimized obliging picture analysis. Koopa is the core package
-        for a prefect-pipeline based workflow to analyze cellular microscopy data
-        of varying types - specializing on single particle analyses."""
+for a prefect-pipeline based workflow to analyze cellular microscopy data
+of varying types - specializing on single particle analyses."""
     ),
     # Installation
     python_requires=">=3.7",
@@ -28,7 +28,7 @@ setup(
         # Specific versions
         "tensorflow==2.7",
         "tifffile==2020.09.03",
-        "torch==1.10"
+        "torch==1.10.1",
         # General
         "cellpose",
         "czifile",
