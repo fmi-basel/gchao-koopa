@@ -13,6 +13,10 @@ import skimage.morphology
 import skimage.segmentation
 
 
+def preprocess(image: np.ndarray) -> np.ndarray:
+    return np.mean(image, axis=0).astype(np.uint16)
+
+
 def relabel_array(image: np.ndarray, mapping: dict) -> np.ndarray:
     """Label an image array based on a input->output map."""
     new_image = [np.where(image == key, value, 0) for key, value in mapping.items()]
