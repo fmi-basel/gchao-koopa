@@ -30,6 +30,7 @@ def __colocalize_frames(
 def __colocalize_tracks(
     track_one: pd.DataFrame,
     track_two: pd.DataFrame,
+    name: str,
     min_frames: int,
     distance_cutoff: int,
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -41,7 +42,10 @@ def __colocalize_tracks(
     """
     # Create track assignment matrix
     assignments = np.zeros(
-        (track_one["particle"].nunique(), track_two["particle"].nunique())
+        (
+            track_one[f"particle_{name}"].nunique(),
+            track_two[f"particle_{name}"].nunique(),
+        )
     )
 
     for frame in track_one["frame"].unique():
@@ -63,7 +67,6 @@ def __colocalize_tracks(
             assignments[real_rows, real_cols] += 1
         except IndexError:
             pass
-            # logger.exception("Could not update assignment matrix.")
 
     # Get colocalizing track numbers from assignment matrix
     coloc_one, coloc_two = np.where(np.where(assignments, assignments > min_frames, 0))
@@ -101,19 +104,24 @@ def colocalize_frames(
 def colocalize_tracks(
     df_one: pd.DataFrame,
     df_two: pd.DataFrame,
+    name: str,
     min_frames: int,
     distance_cutoff: int,
 ) -> pd.DataFrame:
     """Wrapper to colocalize two track-dataframes."""
     # Colocalize both channels
     coloc_one, coloc_two = __colocalize_tracks(
-        df_one, df_two, min_frames, distance_cutoff
+        df_one, df_two, name, min_frames, distance_cutoff
     )
     for idx_one, idx_two in zip(coloc_one, coloc_two):
-        df_one.loc[df_one["particle"] == idx_one, ["coloc_particle"]] = idx_two
-        df_two.loc[df_two["particle"] == idx_two, ["coloc_particle"]] = idx_one
+        df_one.loc[
+            df_one[f"particle_{name}"] == idx_one, [f"coloc_particle_{name}"]
+        ] = idx_two
+        df_two.loc[
+            df_two[f"particle_{name}"] == idx_two, [f"coloc_particle_{name}"]
+        ] = idx_one
 
     # Merge
     df = pd.concat([df_one, df_two])
-    df["coloc_particle"] = df.get("coloc_particle", np.nan)
+    df[f"coloc_particle_{name}"] = df.get(f"coloc_particle_{name}", np.nan)
     return df

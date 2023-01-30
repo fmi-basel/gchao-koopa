@@ -375,10 +375,11 @@ class KoopaWidget(QWidget):
 
             if self.do_timeseries:
                 df_coloc = df_coloc.loc[
-                    df_coloc["coloc_particle"].isna(), self.track_cols
+                    df_coloc[f"coloc_particle_{i}-{j}"].isna(), self.track_cols
                 ]
                 df_empty = df_empty.loc[
-                    ~df_empty["coloc_particle"].isna(), self.track_cols
+                    ~df_empty[f"coloc_particle_{i}-{j}"].isna(),
+                    self.track_cols,
                 ]
                 self.viewer.add_tracks(
                     df_coloc,
@@ -394,10 +395,10 @@ class KoopaWidget(QWidget):
                 )
             else:
                 df_coloc = df_coloc.loc[
-                    df_coloc["coloc_particle"] != 0, self.spots_cols
+                    df_coloc[f"coloc_particle_{i}-{j}"] != 0, self.spots_cols
                 ]
                 df_empty = df_empty.loc[
-                    df_empty["coloc_particle"] == 0, self.spots_cols
+                    df_empty[f"coloc_particle_{i}-{j}"] == 0, self.spots_cols
                 ]
                 bland_point_params = self.point_params.copy()
                 bland_point_params.pop("face_color")
