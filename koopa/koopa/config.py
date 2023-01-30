@@ -7,7 +7,7 @@ import datetime
 import os
 import textwrap
 
-__version__ = "0.0.6"
+__version__ = "0.0.9"
 
 
 @dataclass
@@ -79,9 +79,9 @@ preprocessing_normalization = {
         description=(
             "Registration method. "
             "Ignored if do_3d or do_timeseries is set to True. "
-            "[options: max, mean, sharpest]"
+            "[options: maximum, mean, sharpest]"
         ),
-        default="max",
+        default="maximum",
         dtype=str,
     ),
     "frame_start": ConfigItem(
@@ -206,7 +206,7 @@ segmentation_cells = {
     ),
     "method_nuclei": ConfigItem(
         description="Method for nuclear segmentation. [options: cellpose, otsu]",
-        default="cellpose",
+        default="otsu",
         dtype=str,
     ),
     "method_cyto": ConfigItem(
@@ -215,7 +215,7 @@ segmentation_cells = {
             "Will only be used for the cytoplasmic part of selection `both`. "
             "[options: otsu, li, triangle]"
         ),
-        default="otsu",
+        default="triangle",
         dtype=str,
     ),
     "channel_nuclei": ConfigItem(
@@ -272,7 +272,7 @@ segmentation_cells = {
             "Don't set too large if medium-sized blobs should be kept. "
             "Only if method is otsu."
         ),
-        default=128,
+        default=5000,
         dtype=int,
     ),
     "min_distance": ConfigItem(
@@ -318,13 +318,13 @@ segmentation_other = {
             "List of models. "
             "Must match the order of the methods above. "
             "Set to None if using a mixture. "
-            "Only if method is median."
+            "Only if method is deep."
         ),
         default=[],
         dtype=List[Union[os.PathLike, None]],
     ),
     "sego_backbones": ConfigItem(
-        description="List of segmentation_model backbones.",
+        description="List of segmentation_model backbones. Only if method is deep.",
         default=[],
         dtype=List[Union[str, None]],
     ),
@@ -332,7 +332,7 @@ segmentation_other = {
 
 fly_brain_cells = {
     "brains_enabled": ConfigItem(
-        description="If you're Jess to segment beautiful brains.",
+        description="Drosophila fly brain segmentation.",
         default=False,
         dtype=bool,
     ),
