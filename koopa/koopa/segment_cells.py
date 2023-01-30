@@ -121,8 +121,8 @@ def segment_nuclei(image: np.ndarray, config: dict) -> np.ndarray:
             do_3d=config["do_3d"],
             diameter=config["cellpose_diameter"],
             resample=config["cellpose_resample"],
-            min_size_nuclei=config["min_size_nuclei"]
-            # gpu=config.gpu,
+            min_size_nuclei=config["min_size_nuclei"],
+            gpu=config["gpu"],
         )
     if method == "otsu":
         return segment_otsu(
@@ -143,6 +143,7 @@ def segment_cyto(image: np.ndarray, config: dict) -> np.ndarray:
         diameter=config["cellpose_diameter"],
         resample=config["cellpose_resample"],
         min_size_nuclei=config["min_size_nuclei"],
+        gpu=config["gpu"],
     )
 
 
