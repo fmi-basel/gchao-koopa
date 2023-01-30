@@ -90,20 +90,38 @@ def load_nd(fname: os.PathLike) -> np.ndarray:
     return image
 
 
+def load_tif(fname: os.PathLike) -> np.ndarray:
+    """Read a single tif file and add dimensions."""
+    image = skimage.io.imread(fname).astype(np.uint16)
+    while image.ndim < 4:
+        image = np.expand_dims(image, axis=0)
+    return image
+
+
+def load_stk(fname: os.PathLike) -> np.ndarray:
+    """Wrapper for tif loader with stk extension."""
+    return load_tif(fname)
+
+
 def load_raw_image(fname: str, file_ext: str) -> np.ndarray:
     """Open image file based on file extension."""
     if file_ext == "nd":
         return load_nd(fname)
     if file_ext == "czi":
         return load_czi(fname)
-    raise ValueError(f"Unknown file extension: {file_ext}. Please use nd or czi.")
+    if file_ext == "stk":
+        return load_stk(fname)
+    if file_ext == "tif":
+        return load_tif(fname)
+    raise ValueError(
+        f"Unknown file extension: {file_ext}. Please use nd, czi, stk or tif."
+    )
 
 
 def load_image(fname: os.PathLike) -> np.ndarray:
     """Open a tif file with image or segmentation data."""
     if os.path.splitext(fname)[1] != ".tif":
         raise ValueError(f'Image file must end in ".tif". {fname} does not.')
-
     return tifffile.imread(fname)
 
 
