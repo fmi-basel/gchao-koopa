@@ -10,7 +10,7 @@ from setuptools import setup
 setup(
     # Description
     name="koopa",
-    version="0.0.8",
+    version="0.0.9",
     license="MIT",
     description="Workflow for analysis of cellular microscopy data.",
     long_description_content_type="text/plain",
@@ -25,24 +25,21 @@ of varying types - specializing on single particle analyses."""
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        # Specific versions
-        "tensorflow==2.7",
-        "tifffile==2020.09.03",
-        "torch==1.10.1",
-        # General
-        "cellpose",
         "czifile",
-        "deepblink",
         "numpy",
         "pandas",
         "pyarrow",
         "pystackreg",
         "scikit-image",
         "scipy",
-        "segmentation_models",
-        "torch",
+        "tifffile==2020.09.03",
         "trackpy",
     ],
+    extras_require=dict(
+        deepblink=["tensorflow==2.7", "deepblink"],
+        cellpose=["torch==1.10.1", "cellpose"],
+        segmodels=["segmentation_models"],
+    ),
     # Metadata
     author="Bastian Eichenberger",
     author_email="bastian@eichenbergers.ch",

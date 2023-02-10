@@ -12,9 +12,6 @@ import pystackreg
 import skimage.io
 import tifffile
 
-from . import align
-
-
 # TODO add more logic / help to ensure only creating subdirs etc?
 def create_path(fname: os.PathLike):
     path = os.path.dirname(fname)
@@ -28,6 +25,13 @@ def find_full_path(path: os.PathLike, fname: str, file_ext: str):
     if len(files) != 1:
         raise ValueError(f"Could not find unique file for {fname}.")
     return files[0]
+
+
+def get_stackreg(matrix: np.ndarray) -> pystackreg.StackReg:
+    """Create an affine pystackreg matrix from a transformation matrix."""
+    sr = pystackreg.StackReg(pystackreg.StackReg.AFFINE)
+    sr.set_matrix(matrix)
+    return sr
 
 
 def basename(path: os.PathLike) -> str:

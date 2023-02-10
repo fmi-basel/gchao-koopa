@@ -11,6 +11,8 @@ import scipy.optimize
 import scipy.spatial
 import skimage.io
 
+from . import io
+
 
 def align_image(
     image: np.ndarray, sr: pystackreg.StackReg, index_transforms: List[int]
@@ -128,10 +130,8 @@ def register_alignment_deepblink(
 
 
 def get_stackreg(matrix: np.ndarray) -> pystackreg.StackReg:
-    """Create an affine pystackreg matrix from a transformation matrix."""
-    sr = pystackreg.StackReg(pystackreg.StackReg.AFFINE)
-    sr.set_matrix(matrix)
-    return sr
+    """Placeholder to prevent deepblink requirement in io."""
+    return io.get_stackreg(matrix)
 
 
 def visualize_alignment(
