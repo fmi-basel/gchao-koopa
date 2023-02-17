@@ -40,6 +40,7 @@ def detect_image(
     index_channel: int,
     model: pink.models.Model,
     refinement_radius: int,
+    engine:str = "numba",
 ) -> pd.DataFrame:
     """Wrapper to detect spots in an image series (single, z, or t)."""
     if image.ndim < 3:
@@ -57,7 +58,7 @@ def detect_image(
 
     frames = []
     for frame, image_curr in enumerate(image):
-        df = detect_frame(image_curr, model, refinement_radius)
+        df = detect_frame(image_curr, model, refinement_radius, engine=engine)
         df["frame"] = frame
         df["channel"] = index_channel
         frames.append(df)
