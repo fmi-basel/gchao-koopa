@@ -12,6 +12,7 @@ def detect_frame(
     image: np.ndarray,
     model: pink.models.Model,
     refinement_radius: int,
+    engine="numba",
 ) -> pd.DataFrame:
     """Detect spots in a single frame using deepBlink."""
     # Padding to allow for refinement at edges
@@ -25,7 +26,7 @@ def detect_frame(
         image=image,
         radius=refinement_radius,
         coords=yx,
-        engine="numba",
+        engine=engine,
     )
     df["x"] = x - refinement_radius - 1
     df["y"] = y - refinement_radius - 1
