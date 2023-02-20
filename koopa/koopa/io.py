@@ -12,6 +12,7 @@ import pystackreg
 import skimage.io
 import tifffile
 
+
 # TODO add more logic / help to ensure only creating subdirs etc?
 def create_path(fname: os.PathLike):
     path = os.path.dirname(fname)
@@ -137,7 +138,7 @@ def load_parquet(fname: os.PathLike) -> pd.DataFrame:
 def load_alignment(fname: os.PathLike) -> pystackreg.StackReg:
     """Create alignment matrix from file."""
     matrix = np.load(fname)
-    return align.get_stackreg(matrix)
+    return get_stackreg(matrix)
 
 
 def load_config(fname: os.PathLike) -> configparser.ConfigParser:
