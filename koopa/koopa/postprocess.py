@@ -1,6 +1,6 @@
 """Merge all tasks to summary."""
 
-from typing import Dict
+from typing import Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -47,6 +47,31 @@ def get_cell_properties(segmap: np.ndarray, name: str, do_3d: bool) -> pd.DataFr
     df = pd.DataFrame(props)
     df.columns = ["cell_id", *(f"{prop}_{name}" for prop in properties[1:])]
     return df
+
+
+def merge_segmaps(
+    df: pd.DataFrame, segmaps: Dict[str, np.ndarray], do_3d: bool = False
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    if df["FileID"].nunique() != 1:
+        raise ValueError("Spot files corrupted. Can only contain data from one image.")
+
+    # Cellular segmentation
+    df["cell_id"] = df.apply(lambda row: get_value(row, segmaps["cyto"]), axis=1)
+    df["nuclear"] = df.apply(lambda row: get_value(row, segmaps["nuclei"]) != 0, axis=1)
+
+    # Cell data
+    df_cell = pd.DataFrame()
+    for select in ("cyto", "nuclei"):
+        df_props = get_cell_properties(segmaps[select], select, do_3d)
+        df_cell = pd.concat([df_cell, df_props], axis=1)
+        df_cell = df_cell.loc[:, ~df_cell.columns.duplicated()]
+    df_cell.insert(0, "FileID", df["FileID"].unique()[0])
+
+    # Other segmentation
+    for name, segmap in segmaps.items():
+        if "other" in name:
+            df[name] = df.apply(lambda row: get_value(row, segmap), axis=1).astype(bool)
+    return df, df_cell
 
 
 def get_segmentation_data(
