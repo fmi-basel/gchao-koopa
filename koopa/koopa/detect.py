@@ -15,7 +15,7 @@ def detect_frame(
 ) -> pd.DataFrame:
     """Detect spots in a single frame using deepBlink."""
     # Padding to allow for refinement at edges
-    image = np.pad(image, refinement_radius + 1, mode="constant", constant_values=0)
+    image = np.pad(image, refinement_radius + 1, mode="reflect")
 
     # Prediction and refinement
     yx = pink.inference.predict(image=image, model=model)
