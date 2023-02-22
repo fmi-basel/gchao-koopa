@@ -30,6 +30,7 @@ def detect_frame(
         axis=0,
     )
     y, x = yx.T
+    print(yx)
     df = tp.refine_com(
         raw_image=image,
         image=image,
