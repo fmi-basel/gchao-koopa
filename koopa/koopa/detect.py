@@ -20,6 +20,15 @@ def detect_frame(
 
     # Prediction and refinement
     yx = pink.inference.predict(image=image, model=model)
+    yx = np.delete(
+        yx,
+        np.where((yx[0] >= image.shape[0] - (refinement_radius + 1)) |
+                 (yx[1] >= image.shape[1] - (refinement_radius + 1)) |
+                 (yx[0] < (refinement_radius + 1)) |
+                 (yx[1] < (refinement_radius + 1))
+                 ),
+        axis=0,
+    )
     y, x = yx.T
     df = tp.refine_com(
         raw_image=image,
