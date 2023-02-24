@@ -33,7 +33,7 @@ of varying types - specializing on single particle analyses."""
         "pystackreg",
         "scikit-image",
         "scipy",
-        "tifffile==2020.09.03",
+        "tifffile",
         "trackpy",
     ],
     extras_require=dict(

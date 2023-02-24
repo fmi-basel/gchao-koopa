@@ -12,6 +12,7 @@ def detect_frame(
     image: np.ndarray,
     model: pink.models.Model,
     refinement_radius: int,
+    engine="numba",
 ) -> pd.DataFrame:
     """Detect spots in a single frame using deepBlink."""
     # Padding to allow for refinement at edges
@@ -19,13 +20,22 @@ def detect_frame(
 
     # Prediction and refinement
     yx = pink.inference.predict(image=image, model=model)
+    yx = np.delete(
+        yx,
+        np.where((yx[:,0] >= image.shape[0] - (refinement_radius + 1)) |
+                 (yx[:,1] >= image.shape[1] - (refinement_radius + 1)) |
+                 (yx[:,0] < (refinement_radius + 1)) |
+                 (yx[:,1] < (refinement_radius + 1))
+                 ),
+        axis=0,
+    )
     y, x = yx.T
     df = tp.refine_com(
         raw_image=image,
         image=image,
         radius=refinement_radius,
         coords=yx,
-        engine="numba",
+        engine=engine,
     )
     df["x"] = x - refinement_radius - 1
     df["y"] = y - refinement_radius - 1
@@ -39,6 +49,7 @@ def detect_image(
     index_channel: int,
     model: pink.models.Model,
     refinement_radius: int,
+    engine:str = "numba",
 ) -> pd.DataFrame:
     """Wrapper to detect spots in an image series (single, z, or t)."""
     if image.ndim < 3:
@@ -56,7 +67,7 @@ def detect_image(
 
     frames = []
     for frame, image_curr in enumerate(image):
-        df = detect_frame(image_curr, model, refinement_radius)
+        df = detect_frame(image_curr, model, refinement_radius, engine=engine)
         df["frame"] = frame
         df["channel"] = index_channel
         frames.append(df)
