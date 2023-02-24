@@ -10,6 +10,7 @@ import skimage.measure
 
 def get_value(row: pd.Series, image: np.ndarray) -> float:
     """Get pixel intensity from coordinate values in df row."""
+    image = image.squeeze()
     if image.ndim == 3:
         return image[
             int(row["frame"]),
@@ -50,14 +51,10 @@ def get_cell_properties(segmap: np.ndarray, name: str, do_3d: bool) -> pd.DataFr
 
 
 def merge_segmaps(
-    df: pd.DataFrame, segmaps: Dict[str, np.ndarray], do_3d: bool = False
+    df: pd.DataFrame, segmaps: Dict[str, np.ndarray], fname: str, do_3d: bool = False
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    if df["FileID"].nunique() != 1:
+    if df["FileID"].nunique() > 1:
         raise ValueError("Spot files corrupted. Can only contain data from one image.")
-
-    # Cellular segmentation
-    df["cell_id"] = df.apply(lambda row: get_value(row, segmaps["cyto"]), axis=1)
-    df["nuclear"] = df.apply(lambda row: get_value(row, segmaps["nuclei"]) != 0, axis=1)
 
     # Cell data
     df_cell = pd.DataFrame()
@@ -65,9 +62,14 @@ def merge_segmaps(
         df_props = get_cell_properties(segmaps[select], select, do_3d)
         df_cell = pd.concat([df_cell, df_props], axis=1)
         df_cell = df_cell.loc[:, ~df_cell.columns.duplicated()]
-    df_cell.insert(0, "FileID", df["FileID"].unique()[0])
+    df_cell.insert(0, "FileID", fname)
 
-    # Other segmentation
+    # Cellular and other segmentation
+    if not len(df):
+        return df, df_cell
+
+    df["cell_id"] = df.apply(lambda row: get_value(row, segmaps["cyto"]), axis=1)
+    df["nuclear"] = df.apply(lambda row: get_value(row, segmaps["nuclei"]) != 0, axis=1)
     for name, segmap in segmaps.items():
         if "other" in name:
             df[name] = df.apply(lambda row: get_value(row, segmap), axis=1).astype(bool)
