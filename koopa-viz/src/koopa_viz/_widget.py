@@ -61,7 +61,7 @@ class KoopaWidget(QWidget):
         self.setup_logo_header()
         self.setup_config_parser()
         self.setup_file_dropdown()
-        self.setup_save_widget()
+        # self.setup_save_widget() # Hide for now.
         self.setup_file_navigation()
         self.setup_viewing_options()
         self.setup_progress_bar()
@@ -106,17 +106,17 @@ class KoopaWidget(QWidget):
         self.file_dropdown.setDisabled(True)
         self.layout().addWidget(self.file_dropdown)
 
-    def setup_save_widget(self):
-        widget = QWidget()
-        widget.setLayout(QVBoxLayout())
-        widget.layout().addWidget(QLabel("<b>Save Edits:</b>"))
-        btn_widget = QPushButton("Run")
-        btn_widget.clicked.connect(self.save_edits)
-        widget.layout().addWidget(btn_widget)
-
-        self.save_widget = widget
-        self.save_widget.setDisabled(True)
-        self.layout().addWidget(self.save_widget)
+    # def setup_save_widget(self):
+    #     widget = QWidget()
+    #     widget.setLayout(QVBoxLayout())
+    #     widget.layout().addWidget(QLabel("<b>Save Edits:</b>"))
+    #     btn_widget = QPushButton("Run")
+    #     btn_widget.clicked.connect(self.save_edits)
+    #     widget.layout().addWidget(btn_widget)
+    #
+    #     self.save_widget = widget
+    #     self.save_widget.setDisabled(True)
+    #     self.layout().addWidget(self.save_widget)
 
     def setup_file_navigation(self):
         widget = QWidget()
@@ -142,9 +142,9 @@ class KoopaWidget(QWidget):
         hideall_widget.clicked.connect(self.hide_layers)
         widget.layout().addWidget(hideall_widget)
 
-        settings_save_widget = QPushButton("Save Settings")
-        settings_save_widget.clicked.connect(self.save_settings)
-        widget.layout().addWidget(settings_save_widget)
+        # settings_save_widget = QPushButton("Save Settings")
+        # settings_save_widget.clicked.connect(self.save_settings)
+        # widget.layout().addWidget(settings_save_widget)
         settings_apply_widget = QPushButton("Apply Settings")
         settings_apply_widget.clicked.connect(self.apply_settings)
         widget.layout().addWidget(settings_apply_widget)
@@ -207,7 +207,7 @@ class KoopaWidget(QWidget):
             self.load_colocalization()
         self.pbar.setValue(100)
 
-        self.save_widget.setDisabled(False)
+        # self.save_widget.setDisabled(False)
 
     def save_labels_layer(self, layer):
         if layer.name == "Segmentation Cyto":
