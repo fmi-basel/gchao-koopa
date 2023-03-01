@@ -61,7 +61,7 @@ class KoopaWidget(QWidget):
         self.setup_logo_header()
         self.setup_config_parser()
         self.setup_file_dropdown()
-        self.setup_save_widget()
+        # self.setup_save_widget() # Hide for now.
         self.setup_file_navigation()
         self.setup_viewing_options()
         self.setup_progress_bar()
@@ -106,17 +106,17 @@ class KoopaWidget(QWidget):
         self.file_dropdown.setDisabled(True)
         self.layout().addWidget(self.file_dropdown)
 
-    def setup_save_widget(self):
-        widget = QWidget()
-        widget.setLayout(QVBoxLayout())
-        widget.layout().addWidget(QLabel("<b>Save Edits:</b>"))
-        btn_widget = QPushButton("Run")
-        btn_widget.clicked.connect(self.save_edits)
-        widget.layout().addWidget(btn_widget)
-
-        self.save_widget = widget
-        self.save_widget.setDisabled(True)
-        self.layout().addWidget(self.save_widget)
+    # def setup_save_widget(self):
+    #     widget = QWidget()
+    #     widget.setLayout(QVBoxLayout())
+    #     widget.layout().addWidget(QLabel("<b>Save Edits:</b>"))
+    #     btn_widget = QPushButton("Run")
+    #     btn_widget.clicked.connect(self.save_edits)
+    #     widget.layout().addWidget(btn_widget)
+    #
+    #     self.save_widget = widget
+    #     self.save_widget.setDisabled(True)
+    #     self.layout().addWidget(self.save_widget)
 
     def setup_file_navigation(self):
         widget = QWidget()
@@ -142,9 +142,9 @@ class KoopaWidget(QWidget):
         hideall_widget.clicked.connect(self.hide_layers)
         widget.layout().addWidget(hideall_widget)
 
-        settings_save_widget = QPushButton("Save Settings")
-        settings_save_widget.clicked.connect(self.save_settings)
-        widget.layout().addWidget(settings_save_widget)
+        # settings_save_widget = QPushButton("Save Settings")
+        # settings_save_widget.clicked.connect(self.save_settings)
+        # widget.layout().addWidget(settings_save_widget)
         settings_apply_widget = QPushButton("Apply Settings")
         settings_apply_widget.clicked.connect(self.apply_settings)
         widget.layout().addWidget(settings_apply_widget)
@@ -207,7 +207,7 @@ class KoopaWidget(QWidget):
             self.load_colocalization()
         self.pbar.setValue(100)
 
-        self.save_widget.setDisabled(False)
+        # self.save_widget.setDisabled(False)
 
     def save_labels_layer(self, layer):
         if layer.name == "Segmentation Cyto":
@@ -286,9 +286,13 @@ class KoopaWidget(QWidget):
                 os.path.join(self.analysis_path, "preprocessed", "*.tif")
             )
         )
-        self.files = sorted(
+        files = sorted(
             [os.path.basename(f).replace(".tif", "") for f in files]
         )
+        self.files = sorted(
+            [f[:-17] for f in files]
+        )
+
         self.file_dropdown.setDisabled(False)
         self.file_navigation.setDisabled(False)
         self.dropdown_widget.clear()
@@ -296,9 +300,9 @@ class KoopaWidget(QWidget):
 
     def load_image(self):
         """Open and display raw image data."""
-        fname = os.path.join(
-            self.analysis_path, "preprocessed", f"{self.name}.tif"
-        )
+        fname = glob.glob(os.path.join(
+            self.analysis_path, "preprocessed", f"{self.name}-*.tif"
+        ))[0]
         self.image = tifffile.imread(fname)
         for idx, channel in enumerate(self.image):
             self.viewer.add_image(
@@ -308,9 +312,9 @@ class KoopaWidget(QWidget):
     def load_segmentation_cells(self):
         """Open and display nuclear/cytoplasmic segmentation maps."""
         for name in ["nuclei", "cyto"]:
-            fname = os.path.join(
-                self.analysis_path, f"segmentation_{name}", f"{self.name}.tif"
-            )
+            fname = glob.glob(os.path.join(
+                self.analysis_path, f"segmentation_{name}", f"{self.name}-*.tif"
+            ))[0]
             if not os.path.exists(fname):
                 continue
             segmap = tifffile.imread(fname).astype(int)
@@ -323,11 +327,11 @@ class KoopaWidget(QWidget):
     def load_segmentation_other(self):
         """Open and display additional segmentation maps."""
         for channel in eval(self.config["SegmentationOther"]["sego_channels"]):
-            fname = os.path.join(
+            fname = glob.glob(os.path.join(
                 self.analysis_path,
                 f"segmentation_{channel}",
-                f"{self.name}.tif",
-            )
+                f"{self.name}-*.tif",
+            ))[0]
             segmap = tifffile.imread(fname).astype(int)
             self.viewer.add_labels(
                 segmap, name=f"Segmentation C{channel}", **self.label_params
@@ -342,9 +346,9 @@ class KoopaWidget(QWidget):
                 if self.do_3d or self.do_timeseries
                 else f"detection_raw_c{channel}"
             )
-            fname = os.path.join(
-                self.analysis_path, folder, f"{self.name}.parq"
-            )
+            fname = glob.glob(os.path.join(
+                self.analysis_path, folder, f"{self.name}-*.parq"
+            ))[0]
             df = pd.read_parquet(fname)
 
             if self.do_timeseries:
@@ -364,11 +368,11 @@ class KoopaWidget(QWidget):
         """Open and display colocalization pairs (colocalized vs. non)."""
 
         for i, j in eval(self.config["SpotsColocalization"]["coloc_channels"]):
-            fname = os.path.join(
+            fname = glob.glob(os.path.join(
                 self.analysis_path,
                 f"colocalization_{i}-{j}",
-                f"{self.name}.parq",
-            )
+                f"{self.name}-*.parq",
+            ))[0]
             df = pd.read_parquet(fname)
             df_coloc = df[df["channel"] == i]
             df_empty = df[df["channel"] == j]
