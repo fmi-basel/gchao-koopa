@@ -1,6 +1,7 @@
 """Merge all tasks to summary."""
 
 from typing import Dict, Tuple
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -55,21 +56,34 @@ def merge_segmaps(
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     if df["FileID"].nunique() > 1:
         raise ValueError("Spot files corrupted. Can only contain data from one image.")
+    if not any(i in segmaps for i in ("nuclei", "cyto")):
+        raise ValueError("At least one of 'nuclei' or 'cyto' must be in segmaps")
 
     # Cell data
     df_cell = pd.DataFrame()
     for select in ("cyto", "nuclei"):
+        if select not in segmaps:
+            warnings.warn(f"Segmap {select} not found (skipping).", RuntimeWarning)
+            continue
         df_props = get_cell_properties(segmaps[select], select, do_3d)
         df_cell = pd.concat([df_cell, df_props], axis=1)
         df_cell = df_cell.loc[:, ~df_cell.columns.duplicated()]
     df_cell.insert(0, "FileID", fname)
 
-    # Cellular and other segmentation
     if not len(df):
         return df, df_cell
 
-    df["cell_id"] = df.apply(lambda row: get_value(row, segmaps["cyto"]), axis=1)
-    df["nuclear"] = df.apply(lambda row: get_value(row, segmaps["nuclei"]) != 0, axis=1)
+    # Cellular index
+    cell_id_segmap = "cyto" if "cyto" in segmaps else "nuclei"
+    df["cell_id"] = df.apply(
+        lambda row: get_value(row, segmaps[cell_id_segmap]), axis=1
+    )
+    if "nuclei" in segmaps:
+        df["nuclear"] = df.apply(
+            lambda row: get_value(row, segmaps["nuclei"]) != 0, axis=1
+        )
+
+    # Other segmentation
     for name, segmap in segmaps.items():
         if "other" in name:
             df[name] = df.apply(lambda row: get_value(row, segmap), axis=1).astype(bool)
