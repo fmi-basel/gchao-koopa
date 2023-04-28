@@ -15,9 +15,7 @@ from qtpy.QtWidgets import (
 import napari
 import numpy as np
 import pandas as pd
-import skimage.io
 import tifffile
-import trackpy as tp
 
 
 class KoopaWidget(QWidget):
@@ -61,16 +59,17 @@ class KoopaWidget(QWidget):
         self.setup_logo_header()
         self.setup_config_parser()
         self.setup_file_dropdown()
-        # self.setup_save_widget() # Hide for now.
         self.setup_file_navigation()
         self.setup_viewing_options()
         self.setup_progress_bar()
 
     def clear_viewer(self):
+        """Reset all layers to an empty window."""
         self.viewer.reset_view()
         self.viewer.layers.clear()
 
     def setup_logo_header(self):
+        """Prepare widget for header."""
         widget = QWidget()
         widget.setLayout(QHBoxLayout())
         widget.layout().addWidget(QLabel("<h1>Koopa</h1>"))
@@ -91,6 +90,7 @@ class KoopaWidget(QWidget):
         self.layout().addWidget(widget)
 
     def setup_file_dropdown(self):
+        """Prepare widget for single file selection."""
         widget = QWidget()
         widget.setLayout(QVBoxLayout())
         widget.layout().addWidget(QLabel("<b>Current File:</b>"))
@@ -106,19 +106,8 @@ class KoopaWidget(QWidget):
         self.file_dropdown.setDisabled(True)
         self.layout().addWidget(self.file_dropdown)
 
-    # def setup_save_widget(self):
-    #     widget = QWidget()
-    #     widget.setLayout(QVBoxLayout())
-    #     widget.layout().addWidget(QLabel("<b>Save Edits:</b>"))
-    #     btn_widget = QPushButton("Run")
-    #     btn_widget.clicked.connect(self.save_edits)
-    #     widget.layout().addWidget(btn_widget)
-    #
-    #     self.save_widget = widget
-    #     self.save_widget.setDisabled(True)
-    #     self.layout().addWidget(self.save_widget)
-
     def setup_file_navigation(self):
+        """Prepare widget for file navigation."""
         widget = QWidget()
         widget.setLayout(QVBoxLayout())
         widget.layout().addWidget(QLabel("<b>Navigate Files:</b>"))
@@ -134,6 +123,7 @@ class KoopaWidget(QWidget):
         self.layout().addWidget(self.file_navigation)
 
     def setup_viewing_options(self):
+        """Prepare widget accessibility options."""
         widget = QWidget()
         widget.setLayout(QVBoxLayout())
         widget.layout().addWidget(QLabel("<b>Viewing Options:</b>"))
@@ -142,20 +132,22 @@ class KoopaWidget(QWidget):
         hideall_widget.clicked.connect(self.hide_layers)
         widget.layout().addWidget(hideall_widget)
 
-        # settings_save_widget = QPushButton("Save Settings")
-        # settings_save_widget.clicked.connect(self.save_settings)
-        # widget.layout().addWidget(settings_save_widget)
+        settings_save_widget = QPushButton("Save Settings")
+        settings_save_widget.clicked.connect(self.save_settings)
+        widget.layout().addWidget(settings_save_widget)
         settings_apply_widget = QPushButton("Apply Settings")
         settings_apply_widget.clicked.connect(self.apply_settings)
         widget.layout().addWidget(settings_apply_widget)
         self.layout().addWidget(widget)
 
     def setup_progress_bar(self):
+        """Prepare widget with data loading progress bar."""
         self.pbar = QProgressBar(self)
         self.pbar.setValue(0)
         self.layout().addWidget(self.pbar)
 
     def open_file_dialog(self):
+        """Dialog to select analysis directory."""
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.FileMode.DirectoryOnly)
         if dialog.exec_():
@@ -206,66 +198,6 @@ class KoopaWidget(QWidget):
         if eval(self.config["SpotsColocalization"]["coloc_enabled"]):
             self.load_colocalization()
         self.pbar.setValue(100)
-
-        # self.save_widget.setDisabled(False)
-
-    def save_labels_layer(self, layer):
-        if layer.name == "Segmentation Cyto":
-            folder = "segmentation_cyto"
-        elif layer.name == "Segmentation Nuclei":
-            folder = "segmentation_nuclei"
-        else:
-            folder = f"segmentation_c{layer.name.lstrip('Segmentation C')}"
-        fname = os.path.join(self.analysis_path, folder, f"{self.name}.tif")
-        skimage.io.imsave(fname, layer.data, check_contrast=False)
-
-    def save_points_layer(self, layer):
-        channel = int(layer.name.lstrip("Detection C"))
-
-        # Update spots df
-        refinement_radius = eval(
-            self.config["SpotsDetection"]["refinement_radius"]
-        )
-        image = np.pad(
-            self.image[channel],
-            refinement_radius + 1,
-            mode="constant",
-            constant_values=0,
-        )
-        zyx = layer.data if self.do_3d else layer.data[:, 1:]
-        df = tp.refine_com(
-            raw_image=image,
-            image=image,
-            radius=refinement_radius,
-            coords=zyx + refinement_radius,
-        )
-        df["x"] = zyx.T[2] if self.do_3d else zyx.T[1]
-        df["y"] = zyx.T[1] if self.do_3d else zyx.T[0]
-        df = df.drop("raw_mass", axis=1)
-        df["frame"] = layer.data.T[0] if self.do_3d else 0
-        df["channel"] = channel
-        df.insert(loc=0, column="FileID", value=self.name)
-        if self.do_3d:
-            df["particle"] = df.index.values + 1
-
-        # Save
-        folder = (
-            f"detection_final_c{channel}"
-            if self.do_3d
-            else f"detection_raw_c{channel}"
-        )
-        fname = os.path.join(self.analysis_path, folder, f"{self.name}.parq")
-        df.to_parquet(fname)
-
-    def save_edits(self):
-        for layer in self.viewer.layers:
-            if isinstance(layer, napari.layers.labels.labels.Labels):
-                self.save_label_layer(layer)
-            if isinstance(layer, napari.layers.points.points.Points):
-                self.save_points_layer(layer)
-        napari.utils.notifications.show_info(
-            f"Finished saving edits to {self.name}"
-        )
 
     def change_file(self, option: str):
         """Navigation prev/next to change files faster."""
@@ -420,16 +352,19 @@ class KoopaWidget(QWidget):
                 )
 
     def hide_layers(self):
+        """Set visibility of all layers to False."""
         for layer in self.viewer.layers:
             layer.visible = False
 
     @staticmethod
     def rgb_to_hex(rgb: np.ndarray):
+        """Convert (R, G, B) format to #RRGGBB."""
         return ("#{:X}{:X}{:X}").format(
             int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255)
         )
 
     def save_settings(self):
+        """Save user specific viewing settings (e.g. contrast)."""
         self.settings = {}
         for idx, layer in enumerate(self.viewer.layers):
             layer_settings = {}
@@ -448,6 +383,7 @@ class KoopaWidget(QWidget):
         napari.utils.notifications.show_info("Current settings saved.")
 
     def apply_settings(self):
+        """Apply previously saved user specific viewing settings."""
         if not hasattr(self, "settings"):
             napari.utils.notifications.show_error("No settings saved!")
             return None
