@@ -40,6 +40,7 @@ class KoopaWidget(QWidget):
             "symbol",
             "visible",
         ]
+        self.luigi = False
 
         # Viewer model params - https://napari.org/stable/api/napari.Viewer
         self.image_params = dict(blending="additive")
@@ -62,6 +63,12 @@ class KoopaWidget(QWidget):
         self.setup_file_navigation()
         self.setup_viewing_options()
         self.setup_progress_bar()
+
+    def toggle_old_naming(self):
+        self.luigi = not self.luigi
+        napari.utils.notifications.show_info(
+            f"Turned old naming scheme {'on' if self.luigi else 'off'}."
+        )
 
     def clear_viewer(self):
         """Reset all layers to an empty window."""
@@ -87,6 +94,10 @@ class KoopaWidget(QWidget):
         btn_widget = QPushButton("Select")
         btn_widget.clicked.connect(self.open_file_dialog)
         widget.layout().addWidget(btn_widget)
+
+        luigi_widget = QPushButton("Toggle old naming")
+        luigi_widget.clicked.connect(self.toggle_old_naming)
+        widget.layout().addWidget(luigi_widget)
         self.layout().addWidget(widget)
 
     def setup_file_dropdown(self):
@@ -218,12 +229,11 @@ class KoopaWidget(QWidget):
                 os.path.join(self.analysis_path, "preprocessed", "*.tif")
             )
         )
-        files = sorted(
+        self.files = sorted(
             [os.path.basename(f).replace(".tif", "") for f in files]
         )
-        self.files = sorted(
-            [f[:-17] for f in files]
-        )
+        if not self.luigi:
+            self.files = sorted([f[17:] for f in self.files])
 
         self.file_dropdown.setDisabled(False)
         self.file_navigation.setDisabled(False)
@@ -232,9 +242,16 @@ class KoopaWidget(QWidget):
 
     def load_image(self):
         """Open and display raw image data."""
-        fname = glob.glob(os.path.join(
-            self.analysis_path, "preprocessed", f"{self.name}-*.tif"
-        ))[0]
+        if self.luigi:
+            fname = os.path.join(
+                self.analysis_path, "preprocessed", f"{self.name}.tif"
+            )
+        else:
+            fname = glob.glob(
+                os.path.join(
+                    self.analysis_path, "preprocessed", f"{self.name}-*.tif"
+                )
+            )[0]
         self.image = tifffile.imread(fname)
         for idx, channel in enumerate(self.image):
             self.viewer.add_image(
@@ -244,9 +261,20 @@ class KoopaWidget(QWidget):
     def load_segmentation_cells(self):
         """Open and display nuclear/cytoplasmic segmentation maps."""
         for name in ["nuclei", "cyto"]:
-            fname = glob.glob(os.path.join(
-                self.analysis_path, f"segmentation_{name}", f"{self.name}-*.tif"
-            ))[0]
+            if self.luigi:
+                fname = os.path.join(
+                    self.analysis_path,
+                    f"segmentation_{name}",
+                    f"{self.name}.tif",
+                )
+            else:
+                fname = glob.glob(
+                    os.path.join(
+                        self.analysis_path,
+                        f"segmentation_{name}",
+                        f"{self.name}-*.tif",
+                    )
+                )[0]
             if not os.path.exists(fname):
                 continue
             segmap = tifffile.imread(fname).astype(int)
@@ -259,11 +287,20 @@ class KoopaWidget(QWidget):
     def load_segmentation_other(self):
         """Open and display additional segmentation maps."""
         for channel in eval(self.config["SegmentationOther"]["sego_channels"]):
-            fname = glob.glob(os.path.join(
-                self.analysis_path,
-                f"segmentation_{channel}",
-                f"{self.name}-*.tif",
-            ))[0]
+            if self.luigi:
+                fname = os.path.join(
+                    self.analysis_path,
+                    f"segmentation_{channel}",
+                    f"{self.name}.tif",
+                )
+            else:
+                fname = glob.glob(
+                    os.path.join(
+                        self.analysis_path,
+                        f"segmentation_{channel}",
+                        f"{self.name}-*.tif",
+                    )
+                )[0]
             segmap = tifffile.imread(fname).astype(int)
             self.viewer.add_labels(
                 segmap, name=f"Segmentation C{channel}", **self.label_params
@@ -278,9 +315,16 @@ class KoopaWidget(QWidget):
                 if self.do_3d or self.do_timeseries
                 else f"detection_raw_c{channel}"
             )
-            fname = glob.glob(os.path.join(
-                self.analysis_path, folder, f"{self.name}-*.parq"
-            ))[0]
+            if self.luigi:
+                fname = os.path.join(
+                    self.analysis_path, folder, f"{self.name}.parq"
+                )
+            else:
+                fname = glob.glob(
+                    os.path.join(
+                        self.analysis_path, folder, f"{self.name}-*.parq"
+                    )
+                )[0]
             df = pd.read_parquet(fname)
 
             if self.do_timeseries:
@@ -300,11 +344,20 @@ class KoopaWidget(QWidget):
         """Open and display colocalization pairs (colocalized vs. non)."""
 
         for i, j in eval(self.config["SpotsColocalization"]["coloc_channels"]):
-            fname = glob.glob(os.path.join(
-                self.analysis_path,
-                f"colocalization_{i}-{j}",
-                f"{self.name}-*.parq",
-            ))[0]
+            if self.luigi:
+                fname = os.path.join(
+                    self.analysis_path,
+                    f"colocalization_{i}-{j}",
+                    f"{self.name}.parq",
+                )
+            else:
+                fname = glob.glob(
+                    os.path.join(
+                        self.analysis_path,
+                        f"colocalization_{i}-{j}",
+                        f"{self.name}-*.parq",
+                    )
+                )[0]
             df = pd.read_parquet(fname)
             df_coloc = df[df["channel"] == i]
             df_empty = df[df["channel"] == j]
